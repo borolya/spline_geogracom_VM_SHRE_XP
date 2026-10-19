@@ -1,0 +1,44 @@
+!MS$FREEFORM
+! Microsoft Developer Studio generated include file.
+! Used by rewfort.rc
+!
+      integer, parameter :: idd_txy                         = 101
+      integer, parameter :: IDD_DIALOG1                     = 105
+      integer, parameter :: IDD_DIALOG2                     = 106
+      integer, parameter :: IDC_CURSOR1                     = 107
+      integer, parameter :: IDD_DIALOG3                     = 108
+      integer, parameter :: IDD_DIALOG4                     = 109
+      integer, parameter :: IDD_DIALOG5                     = 110
+      integer, parameter :: IDD_DIALOG6                     = 111
+      integer, parameter :: IDD_DIALOG7                     = 112
+      integer, parameter :: IDD_DIALOG8                     = 113
+      integer, parameter :: IDI_ICON1                       = 114
+      integer, parameter :: IDD_DIALOG9                     = 115
+      integer, parameter :: IDD_DIALOG10                    = 116
+      integer, parameter :: IDI_ICON2                       = 117
+      integer, parameter :: IDD_DIALOG11                    = 118
+      integer, parameter :: IDD_DIALOG12                    = 119
+      integer, parameter :: IDC_CURSOR2                     = 120
+      integer, parameter :: IDD_DIALOG13                    = 121
+      integer, parameter :: IDD_DIALOG14                    = 122
+      integer, parameter :: IDD_DIALOG15                    = 123
+      integer, parameter :: IDD_DIALOG16                    = 124
+      integer, parameter :: IDD_DIALOG17                    = 125
+      integer, parameter :: IDD_DIALOG18                    = 126
+      integer, parameter :: IDD_DIALOG19                    = 127
+      integer, parameter :: IDD_DIALOG20                    = 128
+      integer, parameter :: IDD_DIALOG21                    = 129
+      integer, parameter :: IDD_DIALOG22                    = 130
+      integer, parameter :: IDD_DIALOG23                    = 131
+      integer, parameter :: IDD_DIALOG24                    = 132
+      integer, parameter :: IDD_DIALOG25                    = 133
+      integer, parameter :: IDD_DIALOG26                    = 134
+      integer, parameter :: IDD_DIALOG27                    = 135
+      integer, parameter :: vne                             = 1008
+      integer, parameter :: ost                             = 1009
+      integer, parameter :: Cr                              = 1010
+      integer, parameter :: crit                            = 1011
+      integer, parameter :: NEv1                            = 1012
+      integer, parameter :: nev                             = 1013
+      integer, parameter :: err                             = 1014
+      integer, parameter :: cancel                          = 1015

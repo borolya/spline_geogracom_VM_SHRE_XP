@@ -1,0 +1,1291 @@
+//---------------------------------------------------------------------------
+#include <vcl.h>
+#pragma hdrstop
+#include<process.h>
+#include "Praktika.h"
+#include "stdlib.h"
+#include "math.h"
+#include "stdio.h"
+#include "SysUtils.hpp"
+#include "AddDialog.h"
+#include "Reference.h"
+#include "MainMenu.h"
+#include <fstream.h>
+#include <iostream.h>
+
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.dfm"
+extern char uch_name[80];
+extern char elt_name[80];
+extern char igl_name[80];
+
+double dnugl;
+TForm1 *Form1;
+struct region * curr;
+//DTPoint *PrPoint;
+DTPoint *ExPoint; //на массив из 1-го и 2-го столбца файла
+TPoint *PMPoint; //массив исходный точек в пикселях ????
+float xA; //xA- глобальная переменная -начальная абсцисса
+long pkt; float plt;
+double SizeKofX=2.0, SizeKofY=200.0; //коэффициенты масштаба по Х и У
+double test = 0.0;
+//int SdvigX=0,SdvigY=0;
+double Xmin=0, Xmax=1100, Ymin=-1.5, Ymax=1.5;
+//int sm=0;
+//int QPoint; //количество точек
+
+//*begin = NULL; //инициализация начала списка границ зачем звёздочка???
+//*end = NULL;   // инициализация конца списка границ
+
+
+bool isDbClick = false; //флаг двойного щелчка. Если 0 - не было двойного нажатия, 1 - было
+bool isActive = false; //флаг того,что выб ана граница для редактирования
+bool isMove = false; //флаг перемещения
+//bool isAvt = false; //флаг автоматического расчета схемы
+int x0; //координата мыши для перемешения
+ struct rp1
+  { long pk;
+    float pl;
+    double km;
+  }rp[50];
+   int krp;/*число точек в RP, т.е. номер последней krp-1*/
+extern   int km_to_pic(double km,long *pic,float *plus);
+extern  void pic_to_km(  long pic, float plus,double *km);
+ void cxema();
+//---------------------------------------------------------------------------
+__fastcall TForm1::TForm1(TComponent* Owner)
+        : TForm(Owner)
+{
+}
+
+
+/*******************************************************
+Осноновная функция отрисовки изрбражения на форме
+********************************************************/
+  void TForm1::ReDraw()
+
+{
+   int i,j; //счетчик
+
+   //Xmax = MPoint[QPoint-1].x1;
+  // if(Xp(Xmax)>4096 )SizeKofX=4076.0/Xmax;
+   //задаем ширину и высоту области графика
+//  Fild->Width = QPoint*20*SizeKofX+40;
+  Fild->Width = QPoint*20*SizeKofX;
+  /* if (Fild->Width >4099){SizeKofX=(double)(4099.0/(QPoint*20));
+                  Fild->Width=4099.0;
+    */
+
+      //если изображение выходит за рамки области, расширяем канву
+   if (SizeKofY*2>MainBox->ClientHeight)
+        Fild->Height = SizeKofY*2;
+   else
+        Fild->Height = MainBox->ClientHeight;
+   //задаем параметры пера
+   Fild->Canvas->Brush->Color = clWhite;
+   Fild->Canvas->Pen->Color = clBlack;
+   Fild->Canvas->Pen->Width = 1;
+   //очистить поле графика
+   Fild->Canvas->Rectangle(0,0,Fild->Width,Fild->Height);
+
+   //чертим систему координат
+
+   Fild->Canvas->MoveTo(Xp(Xmin),Yp(Ymin));
+   Fild->Canvas->LineTo(Xp(Xmin),Yp(Ymax)) ;
+   Fild->Canvas->MoveTo(Xp(Xmin),Yp(0));
+   //Fild->Canvas->LineTo(Xp(Xmax)+40,Yp(0));
+    Fild->Canvas->LineTo(Xp(Xmax),Yp(0));//зачем +40?
+   int ch = 0; //значение деления которое выводиться на форму
+   //int picet = 0; //значение деления пикета
+
+   //если начало на плюсе то +1 в пикет это не верно!!!!
+   //могут быть промежуточные точки число двадцаток нада определить
+   // по длине участка а не по числу точек
+   double xt,xtris,xx;
+   int pktris,ost;
+   pkt=(long)ExPoint[0].x1;
+   plt=(float)ExPoint[0].y1;
+   xtris=0.0;
+   pic_to_km(pkt,plt,&xt);//начальная абсцисса
+   xA=xt;//xA- глобальная переменная -начальная абсцисса
+   LOGFONT LF;//создаем переменную под объект структуры для шрифта
+   //создаем объект шрифта
+   Fild->Canvas->Font->Name="Arial";//имя шрифта
+   Fild->Canvas->Font->Size = 8;//размер шрифта
+   Fild->Canvas->Font->Color = clBlack; //цвет шрифта
+   Fild->Canvas->Brush->Color = clWhite;
+   GetObject(Fild->Canvas->Font->Handle, sizeof(LF), &LF);
+
+   while (xtris<=Xmax)
+     { //while
+        Fild->Canvas->MoveTo(Xp(xtris),Yp(0)-5); //рисование делений на системе координат
+        Fild->Canvas->LineTo(Xp(xtris),Yp(0)+5);
+        if((pkt>100)&&(xtris>0.1))
+                pktris=pkt%100;
+        else
+                pktris=pkt;
+        ost=(int)plt%20;
+        if(xtris<0.001)
+        {  // начало
+                if(plt<0.01)
+                {
+        Fild->Canvas->TextOutA(Xp(xtris-0.1),Yp(0)+10,IntToStr(pktris));
+                        xt=xt+20.0;
+                        xtris=xtris+20.0;
+                }
+                else
+                {
+Fild->Canvas->TextOutA(Xp(xtris-0.1)-10,Yp(0)-20,IntToStr(pktris)+'+'+FloatToStr(plt));
+                        if(ost==0)
+                           {
+                             xt=xt+20.0;
+                             xtris=xtris+20.0;
+                           }
+                        else
+                           {//начало на плюсе не кратном 20
+                              pic_to_km(pkt,0,&xx);
+                              if(xx<xt)
+                                {//возрастающий пикетаж
+                                        xt=xt-ost+20;
+                                        xtris=xtris-ost+20;
+                                }
+                              else
+                                {//убывающий пикетаж
+                                        xt=xt+ost;
+                                        xtris=xtris+ost;
+                                }
+                           } //начало на плюсе не кратном 20
+
+                }//начало на любом плюсе
+       }//начало
+   else // не начало
+        {
+          if(plt<0.01)
+            {
+             Fild->Canvas->TextOutA(Xp(xtris-0.1),Yp(0)+5,IntToStr(pktris));
+            }
+          else
+            {
+             Fild->Canvas->TextOutA(Xp(xtris-0.2),Yp(0)+15,FloatToStr(plt));
+            }
+          xt=xt+20.0;
+          xtris=xtris+20.0;
+        }//end не начало
+ // отрисована точка и подготовлена следущая но её надо смотреть на пикетаж
+    km_to_pic(xt,&pkt,&plt);
+    ost=(int)plt%20;
+     if(ost)
+      {
+         pic_to_km(pkt,0,&xx);
+         if(xx<xt)
+             {//возрастающий пикетаж
+                xt=xt-ost;
+                xtris=xtris-ost;
+             }
+        else
+             {
+                xt=xt-(20-ost);
+                xtris=xtris-(20-ost);
+             }
+
+      }
+    km_to_pic(xt,&pkt,&plt);
+ }//while
+     ch = Ymin;
+     for (i=0;i<Ymax-Ymin;i++) //разметка оси У
+      {
+       if (ch!=0)
+        {
+         Fild->Canvas->Brush->Color=clWhite;
+         Fild->Canvas->TextOutA(Xp(0.3),Yp(Ymin+i),FloatToStr(ch));
+        }
+       ch++;
+       Fild->Canvas->MoveTo(Xp(0)-6,Yp(Ymin+i));
+       Fild->Canvas->LineTo(Xp(0)+6,Yp(Ymin+i));
+       }
+
+  // PMPoint=new TPoint[QPoint];перенёс в чтение файла чтобы один раз брать
+   //массив координат исходный точек в пикселях для отрисовки
+
+  for (i=0;i<QPoint;i++)   //перевод координат в пиксели
+   {
+       PMPoint[i].x = Xp(MPoint[i].x1);
+       PMPoint[i].y = Yp(MPoint[i].y1);
+    }
+ //начертить ломаную
+    /* FILE *f;
+     f=fopen("Otl.txt","wt");
+     fprintf(f,"\nFild->Height=%d,SizeKofX=%7.2f,SizeKofY=%7.2f",
+
+     Fild->Height,SizeKofX,SizeKofY);
+     for ( i=0;i<QPoint;i++)
+     {
+     fprintf(f,"\n%4d MPx=%7.2lf,MPy=%5.2lf,PMPx=%8ld, PMPy=%5ld",
+     i,MPoint[i].x1,MPoint[i].y1,PMPoint[i].x,PMPoint[i].y);
+
+     }
+     fclose(f);
+     */
+   Fild->Canvas->MoveTo(PMPoint[0].x,PMPoint[0].y);
+   Fild->Canvas->Polyline(PMPoint,QPoint-1);
+
+ //отметить исходные точки
+  Fild->Canvas->Brush->Color=clRed; //для эллипса
+
+     for (i=0;i<QPoint;i++)
+     {
+
+Fild->Canvas->Ellipse(PMPoint[i].x-2,PMPoint[i].y-2,PMPoint[i].x+2,PMPoint[i].y+2);
+ //Fild->Canvas->Rectangle(PMPoint[i].x-2,PMPoint[i].y-2,PMPoint[i].x+2,PMPoint[i].y+2);
+      }
+    //отрисовка границ
+    Fild->Canvas->Pen->Color = clBlue;
+    Fild->Canvas->Pen->Width = 1;
+   // struct region *curr = new region;
+    curr = begin;
+          if(!curr->next)ToSysKoord(curr);
+          // начальную абсциссу не сделали в ручном режиме не было xA
+    while (curr!=NULL)
+          {
+           if (curr->active)
+               Fild->Canvas->Pen->Color = clRed;
+           else
+               Fild->Canvas->Pen->Color = clBlue;
+
+           Fild->Canvas->MoveTo(Xp(curr->regionX),Fild->Height);
+           Fild->Canvas->LineTo(Xp(curr->regionX), 0);
+
+           //вывод текста к границам
+
+           OutputText(curr);
+           curr = curr->next;
+          }
+
+          //вывести проектную схему
+          if (isShow->Checked)
+          {
+                 Project();
+          }
+
+  }
+
+/************************************************
+перевод мировых координат в пиксели для х
+*************************************************/
+  int TForm1::Xp (double x)
+ {return (xg0+x*SizeKofX); }
+//   return (x*SizeKofX); }// зачем +20, это просто отступ от оси
+/************************************************
+перевод мировых координат в пиксели для y
+*************************************************/
+int TForm1::Yp (double y)
+ {return (yg0+Fild->Height-Fild->Height/2-y*SizeKofY);}
+
+/*******************************************************************
+Перевод из пикселей в мировые координаты Х
+*********************************************************************/
+ double TForm1::pX(double xp)
+  {return ((xp-xg0)/SizeKofX);}
+   // return (xp/SizeKofX);}//зачем -20?
+/***************************************************************
+получение исходных данных из файла
+****************************************************************/
+bool  TForm1::FromFile()
+{
+  FILE *rpfile;
+  rpfile=fopen("rp1.lst","rt");
+  if(rpfile==NULL)
+  {
+    ShowMessage("Не задано соответствие пикетажа.ENTER");
+    return false;
+  }
+  int i=0;
+  double s;
+  while(!feof(rpfile))
+  {
+    fscanf(rpfile,"%lf",&s);
+    if(feof(rpfile))break;
+    fscanf(rpfile,"%f%lf",&rp[i].pl,&rp[i].km);
+    rp[i].pk=(long)s;
+    i++;
+  }
+  krp=i;
+  fclose(rpfile);
+  QPoint = 0;
+
+  ifstream Fin;
+
+  Fin.open(igl_name);//исходная углограмма своя на участке
+
+  if(!Fin)   //открыть файл
+      {
+        ShowMessage ("Не удалось открыть файл исходной углограммы .igl");
+        return false;
+      }
+    char str[100];
+    double z1,z2,z3,z4;
+
+    // получить количество точек
+    Fin>>QPoint;
+
+    MPoint=new DTPoint[QPoint+1];
+    ExPoint= new DTPoint[QPoint+1];
+    PMPoint=new TPoint[QPoint];// перенёс из DRAW()
+
+    int j = 0;
+
+    while (!Fin.eof())
+    {  //заполняет лишний j=Qpoint., а надо -1
+        Fin>>z1;
+        if(Fin.eof()) break;
+        Fin>>z2>>z3>>z4;
+         if (j==0)
+                {
+                        MPoint[j].x1=z3;
+                        MPoint[j].y1=z4;
+                }
+                else
+                { //углы и хорды суммируются
+                        MPoint[j].x1=MPoint[j-1].x1+z3;
+                        MPoint[j].y1=MPoint[j-1].y1+z4;
+                }
+         ExPoint[j].x1=z1;
+         ExPoint[j].y1=z2;
+        j++;
+
+    }//while
+    if(j!=QPoint) ShowMessage("Ошибка в исходном файле углограммы");
+/*    for (i=0;i<QPoint;i++)   //перевод координат в пиксели
+   {
+       PMPoint[i].x = Xp(MPoint[i].x1);
+       PMPoint[i].y = Yp(MPoint[i].y1);
+    }//перенёс  и зря так как при вызове рисовки могли измениться масштабы
+  */
+//       QPoint=103;
+    Xmax = MPoint[QPoint-1].x1;
+
+    Fin.close();
+
+    //границы
+    rQuantity = 0;
+    //переменные для считывания
+    double tempX,tempKr, tempXnorm;
+    int tempType;
+    //последняя граница - есть всегда
+
+    region *lend = new region;
+                        lend->prev = NULL;
+                        lend->next = NULL;
+                        lend->regionX = Form1->MPoint[Form1->QPoint-1].x1;
+                        lend->type = 0; //последняя граница
+                        lend->krivizna = 0;
+                        lend->active = false;
+                        ToSysKoord(lend); //ещё нет xA!!!
+                        end = lend;
+                        begin = lend;
+                        Form1->rQuantity = 1;
+    if (regime==0||regime==1)
+    {
+ //режим автoматического расчета или открытие сохраненного файла
+ // - требуется читать из файла Uglogramma.txt теперь uch_name состыкован
+     if (regime==0)
+        {   //режим автоматического расчета
+            cxema();
+         }
+    ifstream Fin2;
+    int num;
+     if (regime==0)Fin2.open("cxema.dat"); else
+    Fin2.open(uch_name);
+    if(!Fin2)   //не удалось открыть файл .g??
+      { if (regime!=0)ShowMessage("Сохранённого " +AnsiString (uch_name)+"  Нет.");
+       else ShowMessage(" cxema.dat  не открыт" );
+      return true;
+      }
+
+    Fin2>>rQuantity;
+    num = 0;
+    while (!Fin2.eof())
+        {
+            struct region *temp = new region;
+            Fin2>>temp->regionX;
+            //if(Fin2.eof())break;
+            Fin2>>temp->type>>temp->krivizna>>temp->picet>>temp->plus;
+            temp->next = NULL;
+            temp->active = false;
+
+             if (num==0) //считали первый элемент списка
+                {
+                   temp->prev = NULL;
+                   begin = temp;
+                }
+             else
+                {
+                  temp->prev = end;
+                  temp->prev->next = temp;
+                }
+             end = temp;
+             num++;
+        }  //end while
+        Fin2.close();
+
+  if (abs(end->regionX-Form1->MPoint[QPoint-1].x1)>0.01)//последняя граница была в списке
+     {
+       region *temp = new region;
+
+       temp->next = NULL;
+       temp->regionX = Form1->MPoint[QPoint-1].x1;
+       temp->type = 0; //последняя граница
+       temp->krivizna = 0;
+       temp->active = false;
+       ToSysKoord(temp);
+       temp->prev = end;
+       temp->prev->next = temp;
+       end = temp;
+     }
+
+
+// struct region *curr = new region;зачем new? curr теперь глобальный
+ curr = begin;   //это лишнее?
+ //if (curr==NULL)
+   //return;
+   if(regime==1)
+   {//прочитать разность начальных углов
+   dnugl=0.0;
+   FILE *nu;
+   nu=fopen("nach_ugl.txt","rt");
+
+    if(nu)
+     {
+    fscanf(nu,"%lf",&dnugl);//разность проектного и существующего углов
+//    ShowMessage(FloatToStr(dnugl));
+     }
+   fclose(nu);
+   }  //regime==1
+ } //режим автоматический или из файла
+   return true;
+}
+
+/****************************************************************
+вывод значений по умолчанию на форму
+*****************************************************************/
+ void TForm1:: ToForm()
+ {
+
+   ButSizeX->Position = SizeKofX;
+   ButSizeY->Position = SizeKofY;
+   SizeX->Text = SizeKofX;
+   SizeY->Text = SizeKofY;
+
+
+  }
+/*******************************************************************
+обработка события onPaint для области графика (объект PainBox)
+********************************************************************/
+void __fastcall TForm1::FildPaint(TObject *Sender)
+{
+  if (PMPoint!=NULL)
+    {
+
+    ReDraw();
+
+    }
+}
+
+
+/***********************************************************
+Обработка события перемещения мыши
+**************************************************************/
+void __fastcall TForm1::FildMouseMove(TObject *Sender, TShiftState Shift,
+      int X, int Y)
+{
+    if( ButCenter->Down && MousePressed )
+ {
+  if( xg0 + X-xprev <= 20 )
+   xg0 = xg0 + X - xprev;
+
+   yg0 = yg0  + Y - yprev;
+
+ // Fild->Canvas->Brush->Color = clWhite;
+ // Fild->Canvas->FillRect(Rect(0,0,Fild->Width,Fild->Height));
+
+  ReDraw();
+
+  xprev = X;
+  yprev = Y;
+ }
+   Form1->x1 = X;  //считываем координаты мыши на поле графика
+}
+/***********************************************************
+Обработка события двойного нажатия клавиши мыши
+**************************************************************/
+
+void __fastcall TForm1::FildDblClick(TObject *Sender)
+{
+     isDbClick = true;  //флаг того, что был двойной щелчок мыши
+
+}
+
+/***********************************************************
+Обработка события нажатия клавиши мыши
+Возможно
+-перемещение, если стоит флаг isMove = true
+-добавление границы, если был двойной щелчек (флаг isDbClick = true;)
+-активания границы для редактирования
+**************************************************************/
+
+void __fastcall TForm1::FildMouseDown(TObject *Sender, TMouseButton Button,
+      TShiftState Shift, int X, int Y)
+{
+
+   MousePressed = true;
+   xprev = X;
+   yprev = Y;
+
+
+
+   if (isMove)
+        {
+          Move(); //перемещение границы надо пересчитать пикетаж !!!
+          return;
+        }
+
+   if (Button!=mbLeft)
+      return;
+   if (isDbClick)     //добавление границы
+     {
+        Form2->ShowModal();  //показать диалоговое окно
+        isDbClick = false;
+     }
+    else  //возможно редактирование границы
+      {
+        if (isActive == true)  //уже выбрана граница для редактирования
+          {
+          ShowMessage("Уже выбрана граница для редактирования");
+          return;
+            }
+        //проверяем попали ли линию-границу
+        //struct region *curr = new region; лишнее??
+        curr = begin;
+        while (curr!=NULL)
+        {
+          if ((Xp(curr->regionX)>=Form1->x1-1)&&(Xp(curr->regionX)<=Form1->x1+1))
+                        {
+                                if (curr->next==NULL)
+                                  {
+                                    ShowMessage("Нельзя удалить или переместить последнюю границу");
+                                    return;
+                                  }
+                           Fild->Canvas->Pen->Color = clRed;
+                           Fild->Canvas->Pen->Width = 1;
+                           Fild->Canvas->MoveTo(Xp(curr->regionX), Fild->Height);
+                           Fild->Canvas->LineTo(Xp(curr->regionX), 0);
+                           curr->active = true;
+                           isActive = true; //выбрана граница для реактирования
+
+                           //сделать активными кнопки и меню
+                           Form1->btnDisactive->Enabled = true;
+                           Form1->btnDelete->Enabled = true;
+
+                           Form1->btnMove->Enabled = true;
+                           Form1->N2->Enabled = true;
+                           Form1->N3->Enabled = true;
+                           Form1->N4->Enabled = true;
+                           break;
+                        }
+                else
+                        curr = curr->next;
+             }
+        }
+}
+/***********************************************************
+Удаление границы
+**************************************************************/
+void TForm1::Delete()
+{
+//  struct region *curr = new region;
+
+  curr = begin;
+
+        while (curr!=NULL)
+        {
+          if (curr->active == true)
+            {
+              if (curr==begin)
+                 begin = curr->next; //нужно удалить первый
+              else
+                {
+                 if (curr->next==NULL)
+                   curr->prev->next = NULL;  //нужно удалить последний
+                 else
+                   {
+                    curr->next->prev = curr->prev;
+                    curr->prev->next = curr->next;
+                   }
+
+                 if (curr->next->type == 2)  //если окружность пересчитать кривизну
+                 {
+                   if (!Form2->krivizna(curr->next))
+                     {ShowMessage ("Ошибка в рассчете кривизны");}
+                 }
+              }
+
+             }
+            curr = curr->next;
+          }
+    isActive = false;
+    rQuantity--;
+    Form1->btnDelete->Enabled = false;
+    Form1->btnDisactive->Enabled = false;
+    Form1->btnMove->Enabled = false;
+    Form1->N2->Enabled = false;
+    Form1->N3->Enabled = false;
+    Form1->N4->Enabled = false;
+    ReDraw();
+}
+/***********************************************************
+Деактивация границы - отменить выбор
+**************************************************************/
+void TForm1::Disactive()
+{
+  isActive = false;
+  isMove = false;
+  //struct region *curr = new region;
+
+  curr = begin;
+
+        while (curr!=NULL)
+        {
+          if (curr->active == true)
+             {
+              curr->active = false;
+              Fild->Canvas->Pen->Color = clBlue;
+              Fild->Canvas->Pen->Width = 1;
+              Fild->Canvas->MoveTo(Xp(curr->regionX),Fild->Height);
+              Fild->Canvas->LineTo(Xp(curr->regionX), 0);
+              break;
+             }
+          curr = curr->next;
+         }
+    Form1->btnDelete->Enabled = false;
+    Form1->btnDisactive->Enabled = false;
+    Form1->btnMove->Enabled = false;
+    Form1->N2->Enabled = false;
+    Form1->N3->Enabled = false;
+    Form1->N4->Enabled = false;
+}
+
+/***********************************************************************
+Перемещение границы
+*************************************************************************/
+struct region *editR = new region;
+void TForm1::Move()
+{
+  if (isMove)
+   {
+
+      if (editR==begin)
+      {
+          if (Form1->x1>Xp(editR->next->regionX))
+            {
+              ShowMessage("Недопустимое перемещение");
+              return;
+            }
+      }
+      else
+      {
+       if ((Form1->x1>Xp(editR->next->regionX))||(Form1->x1<Xp(editR->prev->regionX)))
+            {
+              ShowMessage("Недопустимое перемещение");
+              return;
+             }
+       }
+      editR->regionX = pX(Form1->x1);
+      editR->active = false;
+      //добавил пикет и плюс
+      double xy;
+      xy=xA+editR->regionX;
+      km_to_pic(xy,&pkt,&plt);
+      editR->picet=pkt; editR->plus=plt;
+      //пересчитеть кривизну
+      if (editR->type == 2)
+        {
+           if (!Form2->krivizna(editR))
+                     {ShowMessage ("Ошибка в расчете кривизны");}
+        }
+
+        if (editR->next->type == 2)
+                if (!Form2->krivizna(editR->next))
+                     {ShowMessage ("Ошибка в рассчете кривизны");}
+
+   isActive = false;
+   isMove = false;
+    //деактивировать кнопки и меню
+    Form1->btnDelete->Enabled = false;
+    Form1->btnDisactive->Enabled = false;
+    Form1->btnMove->Enabled = false;
+    Form1->N2->Enabled = false;
+    Form1->N3->Enabled = false;
+    Form1->N4->Enabled = false;
+    //перерисовать изображение
+    ReDraw();
+
+    }
+
+}
+
+void __fastcall TForm1::btnDelete1Click(TObject *Sender)
+{
+  Delete();
+
+}
+
+
+/***********************************************************************
+Rонтектное меню
+*************************************************************************/
+void __fastcall TForm1::N1Click(TObject *Sender)
+{
+    Form2->ShowModal();  //открыть диалоговое окно для добавления границы
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::N4Click(TObject *Sender)
+{
+   Delete(); //удалить
+
+}
+//---------------------------------------------------------------------------
+
+
+void __fastcall TForm1::N2Click(TObject *Sender)
+{
+   Disactive();   //убрать выбор границы
+}
+//---------------------------------------------------------------------------
+
+
+void __fastcall TForm1::N3Click(TObject *Sender) //переместить границу
+{
+   isMove = true;
+
+  editR = begin;
+        while (editR!=NULL)
+        {
+          if (editR->active == true)
+             {
+              x0 = editR->regionX; //запомнить первоначальную координату
+
+              break;
+             }
+             editR = editR->next;
+         }
+}
+
+/*********************************************************************
+Вывод подписи к границе
+*********************************************************************/
+void TForm1::OutputText(region *temp)
+{
+int jj1,jj2;//для округлений
+  LOGFONT LF;//создаем переменную под объект структуры для шрифта
+  Fild->Canvas->Font->Name="Arial";//имя шрифта
+  Fild->Canvas->Font->Size = 8;//размер шрифта
+  Fild->Canvas->Font->Color = clRed; //цвет шрифта
+  Fild->Canvas->Brush->Color = clWhite;
+
+  //создаем объект шрифта
+  GetObject(Fild->Canvas->Font->Handle, sizeof(LF), &LF);
+   jj1=(int)(temp->plus+0.5);
+   jj2=temp->picet; if(jj1==100){jj2++;jj1=0;}
+    Fild->Canvas->TextOutA(Xp(temp->regionX)-70,15,"ПК "+ IntToStr(jj2)+"+"+IntToStr(jj1));
+
+AnsiString name;
+  switch (temp->type)
+  {
+    case 0:
+       name = "Прям.";
+       break;
+    case 1:
+       name = "Клот.";
+       break;
+    case 2:
+        name = "Окр.";
+        break;
+   }
+
+    double ss=0.0,s1;
+    if(temp->prev)ss=temp->prev->regionX;
+    ss=temp->regionX-ss;//длина элемента
+    jj1=(int)(ss+0.5);
+    Fild->Canvas->TextOutA(Xp(temp->regionX)-65,30, name+" L="+IntToStr(jj1));
+  if (temp->type==2)
+    {
+   int jj = 0.0;
+   if (temp->krivizna!=0.0)
+      {s1=0.5; if(temp->krivizna<0.0) s1=-s1;
+      jj=(int)(1.0/temp->krivizna+s1);
+      }
+  Fild->Canvas->TextOutA(Xp(temp->regionX)-50,45,"R = "+IntToStr(jj));
+    }
+}
+/*************************************************************************
+Запись в выходной файл
+**************************************************************************/
+bool TForm1::WriteToOutputFile()
+{
+   ofstream  Fout;
+//   ShowMessage(uch_name);
+   Fout.open(uch_name);  //для повторного счёта при схеме запись в схема.dat
+   if (!Fout)//запись в .g??
+      {
+         ShowMessage ("Не удалось создать файл. Данные не будут сохранены");
+        return false;
+      }
+     Fout<<rQuantity;
+//     struct region *curr = new region;зачем new
+    curr = begin;
+    while (curr!=NULL)
+  {
+  Fout<<"\n"<<curr->regionX<<" "<<curr->type<<" "<<curr->krivizna<<" "<<curr->picet<<" "<<curr->plus;
+  curr = curr->next;
+  }
+   Fout.close();
+   //запись в файл элементов  uch_name.e01 сделали, теперь в elt_name
+   //char* name=new char[80];
+   double kriv; int j;
+   /*strcpy (name,uch_name);
+   int j=strlen(name)-1;
+   name[j]='1'; name[j-1]='0'; name[j-2]='e';
+   */
+   struct elementy
+  {double l_clot,kriv,l_circ;};
+   elementy * el;
+   el=new elementy[rQuantity];// с запасом
+   int n_elts=0,pr; double l_first,l_last;
+    Fout.open(elt_name);
+    curr = begin;
+    j=0;// номер анализируемого эл-та в curr
+    if(curr->type==0)
+    {l_first=curr->regionX; j++; curr = curr->next;}
+     else  l_first=0.0;
+      while (curr!=NULL)
+       { if(curr->next!=NULL)pr=curr->next->type;else pr=-1;
+     switch (curr->type)
+          {
+       case 0:// прямая
+         if(curr->prev->type==0)
+          { if(n_elts==0)l_first=curr->regionX; else
+           el[n_elts-1].l_circ+= curr->regionX-curr->prev->regionX;
+          }// прямая за прямой
+          else {// впереди только окружность, ставлю нуль клотоиду
+           el[n_elts].l_clot=0.0;
+           el[n_elts].kriv=0.0;
+           el[n_elts].l_circ=curr->regionX-curr->prev->regionX;
+           j++;
+           n_elts++;
+               }
+              break;
+        case 1://клотоида
+          if(j==0) el[n_elts].l_clot=curr->regionX;else
+           el[n_elts].l_clot=curr->regionX-curr->prev->regionX;
+           switch(pr)
+            {
+           case 0:// прямая за клотоидой
+             el[n_elts].kriv=0.0;
+             el[n_elts].l_circ=curr->next->regionX-curr->regionX;
+              j=j+2;
+              n_elts++;
+             curr=curr->next;
+              break;
+              case 1: //клотоида за клотоидой
+             el[n_elts].kriv=0.0;
+             el[n_elts].l_circ=0.0;
+             j++;
+             n_elts++;
+               break;
+             case 2:    // окружность за клотоидой
+              el[n_elts].kriv=curr->next->krivizna;
+              el[n_elts].l_circ=curr->next->regionX-curr->regionX;
+              j=j+2;
+              n_elts++;
+              curr=curr->next;
+               break;
+                 }//switch pr
+               break;
+        case 2://окружность ставлю впереди нулевую клотоиду + окружность
+           el[n_elts].l_clot=0.0;
+           el[n_elts].kriv=curr->krivizna;
+           if(j==0) el[n_elts].l_circ=curr->regionX; else
+           el[n_elts].l_circ=curr->regionX-curr->prev->regionX;
+           j++;
+           n_elts++;
+           break;
+             }//switch
+             curr=curr->next;
+           }// while
+           // в итоге n_elts это количество новых элементов
+           n_elts--;// последняя клотоида не считается
+     // лишняя   l_last=el[n_elts].l_circ;
+           Fout<<n_elts;
+           Fout<<"\n"<<l_first;
+           double s,s1,s2;
+           s=l_first-200;
+           if(s<0.0)s=20.0;
+           s1=l_first+200.;
+           Fout<<"\n"<<s<<" "<<s1<<"  "<<20.;
+           for(j=0;j<n_elts;j++)
+             {
+
+             s= el[j].l_clot;
+             if(s<0.1) s1=s2=s; else
+             {
+              s1=0.7*s;
+              if(s1<20)s1=20;
+              s2=1.3*s;
+              if(s2>180)s2=180;
+              }
+              Fout<<"\n"<<el[j].l_clot<<" "<<s1<<" "<<s2;
+             if(fabs(el[j].kriv)>0.00001)
+             {
+             kriv=1.0/el[j].kriv;
+             s=  fabs(kriv);  //радиус
+             s1=0.7*s; if(s1<200) s1=200;
+             s2=1.3*s; if(s2>3000)s2=3000;
+             }
+              else
+              {kriv=0.0;   s1=200; s2=3000;
+              }
+
+               Fout<<"\n"<<kriv<<" "<<s1<<" "<<s2;
+               s=el[j].l_circ;
+                if(s<0.1) s1=s2=s; else
+                {
+               s1=0.7*s; if(s1<20) s1=20;
+               s2=1.3*s; if(s2>3000)s2=3000; //длина круговой
+                 }
+               Fout<<"\n"<<el[j].l_circ<<" "<<s1<<" "<<s2;
+               Fout<<"\n"<<0;//возвышение наружного рельса
+             }
+                s=el[n_elts].l_clot;
+                s1=0.7*s;
+              if(s1<20)s1=20;
+              s2=1.3*s;
+              if(s2>180)s2=180;
+         Fout<<"\n"<<el[n_elts].l_clot<<" "<<s1<<" "<<s2;
+
+                Fout.close();
+                delete (el);
+//                delete(name);
+                //где удалять список границ???
+  return true;
+}
+
+
+
+
+/**************************************************************************
+Перевод х в пикет +
+***************************************************************************/
+void TForm1::ToSysKoord(region *t)
+{
+ double x1=xA+t->regionX;
+ km_to_pic(x1,&pkt,&plt);
+t->picet =pkt; t->plus=plt;
+
+
+}
+
+/**************************************************************************
+Обработка события закрытия формы - диалог сохранения
+***************************************************************************/
+void __fastcall TForm1::FormClose(TObject *Sender, TCloseAction &Action)
+{
+  if (regime!=3)
+  {
+  if(MessageDlg("Сохранить?",
+	              mtConfirmation, TMsgDlgButtons() << mbYes<< mbNo,                0) == mrYes)
+	 {
+         WriteToOutputFile();
+         }
+ }
+  // освобождение списка границ
+/*
+    while (begin)
+    {
+    curr=begin->next;
+    delete begin;
+    begin=curr;
+    }
+    delete ExPoint;
+    delete PMPoint;
+   // delete Form1; циклится
+   Release();
+   */
+}
+
+/***********************************************************************
+Обработка нажатия кнопок меню
+**********************************************************************/
+void __fastcall TForm1::btnDisactiveClick(TObject *Sender)
+{
+     Disactive();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::btnMoveClick(TObject *Sender)
+{
+   isMove = true;
+
+  editR = begin;
+        while (editR!=NULL)
+        {
+          if (editR->active == true)
+             {
+              x0 = editR->regionX; //запомнить первоначальную координату
+
+              break;
+             }
+             editR = editR->next;
+         }
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::btnDeleteClick(TObject *Sender)
+{
+   Delete();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::btnSaveClick(TObject *Sender)
+{
+    if (WriteToOutputFile())
+     ShowMessage("Данные успешно сохранены");
+}
+
+/****************************************************************************
+Изменение маштаба по х
+*****************************************************************************/
+
+void __fastcall TForm1::ButSizeXClick(TObject *Sender, TUDBtnType Button)
+{
+if (Button==btNext)
+ {
+        SizeKofX = SizeKofX+0.2;
+ }
+ if ((Button== btPrev)&&(SizeKofX-0.2>0.00001) )
+ {
+        SizeKofX = SizeKofX-0.2;
+ }
+ SizeX->Text = SizeKofX;
+ ReDraw();
+}
+/****************************************************************************
+Изменение маштаба по у
+*****************************************************************************/
+
+
+void __fastcall TForm1::ButSizeYClick(TObject *Sender, TUDBtnType Button)
+{
+
+if (Button==btNext)
+ {
+        SizeKofY = SizeKofY+10;
+ }
+ if ((Button== btPrev)&&(SizeKofY-10>0.00001) )
+ {
+        SizeKofY = SizeKofY-10;
+ }
+   SizeY->Text = SizeKofY;
+   ReDraw();
+}
+/*********************************************************************
+Вызов справки
+**********************************************************************/
+
+void __fastcall TForm1::btnRefClick(TObject *Sender)
+{
+Form3->Show();
+}
+
+/*********************************************************************
+Изменение размера формы
+**********************************************************************/
+void __fastcall TForm1::FormResize(TObject *Sender)
+{
+
+      Panel1->Top = Form1->ClientHeight-Panel1->Height;
+      Panel1->Width = Form1->ClientWidth;
+      SizeKofY = MainBox->ClientHeight/2;
+      SizeY->Text = SizeKofY;
+
+}
+
+
+/*********************************************************************
+Обработка события изменения флага показа проектной углограммы
+**********************************************************************/
+void __fastcall TForm1::isShowClick(TObject *Sender)
+{
+        ReDraw();
+}
+/*********************************************************************
+Рассчитать и отобразить проектную углограмму
+**********************************************************************/
+void TForm1::Project()
+{
+
+ double xs = 0; //начала участка
+ double xe = 0; //конец участка
+ double ys = 0; //начала участка
+ double ye = 0; //конец участка
+ Fild->Canvas->Pen->Color = clGreen;
+ Fild->Canvas->Pen->Width = 2;
+ //struct region *curr = new region;
+        curr = begin;
+
+    while (curr!=NULL)
+     {
+          if (curr->prev== NULL) //первая граница
+          {
+              xs = MPoint[0].x1;
+  //  ys = MPoint[0].y1; //заменить на разность углов при начале не с существующего угла
+     ys=dnugl;
+     ye=ys;//добавил
+          }
+           xe = curr->regionX;
+       //       xe = curr->regionX-10;;
+         if(curr->next==NULL) xe = curr->regionX;
+
+           if (curr->type == 0) //прямая
+          {
+                 Fild->Canvas->MoveTo(Xp(xs),Yp(ys));
+      //         Fild->Canvas->LineTo(Xp(curr->regionX),Yp(ys));
+                   Fild->Canvas->LineTo(Xp(xe),Yp(ys));
+          }
+          if (curr->type ==2) //окружность
+          {
+                Fild->Canvas->MoveTo(Xp(xs),Yp(ys));
+                 ye = ys+curr->krivizna*(xe-xs);
+                 Fild->Canvas->LineTo(Xp(xe),Yp(ye));
+          }
+          if (curr->type == 1)
+          {
+           Fild->Canvas->MoveTo(Xp(xs),Yp(ys));
+          double xh = 0;
+//             while (curr->regionX-(xh+xs)>0.1)
+                  while (xe-(xh+xs)>0.01)
+                   {
+ ye = curr->prev->krivizna*xh+
+ (curr->next->krivizna-curr->prev->krivizna)/
+ (curr->regionX-curr->prev->regionX)*xh*xh/2+ys;
+                       xh +=0.5;
+                       Fild->Canvas->LineTo(Xp(xs+xh),Yp(ye));
+
+                   }
+          }//клотоида
+          xs = xe;
+          ys = ye;
+          curr = curr->next;
+          }
+}
+
+/*********************************************************
+Обработка события показа формы
+-Показать диалог выбора режива работы
+-Считать данные
+-Отрисовать
+**********************************************************/
+
+void __fastcall TForm1::FormShow(TObject *Sender)
+{
+  MousePressed = false;
+  xg0 = 20 ; yg0 = 0;
+
+ // regime = 2;
+//  begin=end=NULL;
+  Form4->ShowModal();//даёт режим и только
+  if(regime==3){Form1->Close();
+                Form1->Release();
+                 return;}
+  if (FromFile())
+  { //получение данных из файла
+     ToForm();  //вывод значений по умолчанию на форму
+     ReDraw(); //отрисовка графика и границ
+   }
+  else
+  {  ShowMessage("Не прочитан файл");
+//    regime = 3;
+        Form1->Close();
+        Form1->Release();
+     return;
+
+  }
+}
+//---------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button1Click(TObject *Sender)
+{ //возврат
+    while (begin)
+    {
+    curr=begin->next;
+    delete begin;
+    begin=curr;
+    }
+    delete ExPoint;
+    delete PMPoint;
+    delete MPoint;
+//освободил список границ и массивы
+//они созданы при FromFile в Form->Show
+Form4->ShowModal();
+if(regime==3){Form1->Close(); Form1->Release();return;}
+if (FromFile())
+  { //получение данных из файла
+     //ToForm();  //вывод значений по умолчанию на форму уже был форма горит
+     ReDraw(); //отрисовка графика и границ
+
+  }  else ShowMessage("Не прочитан файл");
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button2Click(TObject *Sender)
+{  //закончить работу
+Form1->Close();
+Form1->Release();
+}
+//---------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+void __fastcall TForm1::ButCenterClick(TObject *Sender)
+{
+
+  ButCancel->Visible  = ButCenter->Down;
+         
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::FildMouseUp(TObject *Sender, TMouseButton Button,
+      TShiftState Shift, int X, int Y)
+{
+  MousePressed = false; 
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::ButCancelClick(TObject *Sender)
+{
+    xg0 = 20 ; yg0 = 0;
+    ReDraw();
+}
+//---------------------------------------------------------------------------
+
+
+//---------------------------------------------------------------------------
+

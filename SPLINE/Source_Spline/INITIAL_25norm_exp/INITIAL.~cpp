@@ -1,0 +1,45 @@
+//---------------------------------------------------------------------------
+
+#include <vcl.h>
+#pragma hdrstop
+#include<string.h>
+USEFORM("Praktika.cpp", Form1);
+USEFORM("MainMenu.cpp", Form4);
+USEFORM("Unit2.cpp", Form2);
+USEFORM("Unit6.cpp", Form6);
+//---------------------------------------------------------------------------
+char elt_name[80];//готовое имя файла для записи  элементов *.e??
+char igl_name[80];//имя файла исходной углограммы
+//---------------------------------------------------------------------------
+WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR pDirPath, int)
+{
+//pDirPath="u1.e67";
+//pDirPath="Reg2.e67";
+// pDirPath="Regsh1.e79";
+//pDirPath="Ovch1.e52";   //было
+ //  ShowMessage("INITIAL");
+     ShowMessage( pDirPath);
+//сохранённый для воспроизведения тот же но вместо е стоит g
+strcpy(elt_name,pDirPath); //вместе с номером варианта в него запись
+
+unsigned int j=strlen(pDirPath);//кол-во символов в *.e01
+   strncpy(igl_name,pDirPath,j-4);
+     strcat(igl_name,".igl");
+  ShowMessage(igl_name);
+        try
+        {
+                 Application->Initialize();
+                 Application->Title = "INITIAL";
+                 Application->CreateForm(__classid(TForm1), &Form1);
+                 Application->CreateForm(__classid(TForm4), &Form4);
+                 Application->CreateForm(__classid(TForm2), &Form2);
+                 Application->CreateForm(__classid(TForm6), &Form6);
+                 Application->Run();
+         }
+        catch (Exception &exception)
+        {
+                 Application->ShowException(&exception);
+        }
+                return 0;
+}
+//---------------------------------------------------------------------------

@@ -1,0 +1,63 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: rewfort - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\Users\STRUCH~1\AppData\Local\Temp\RSP7AA7.tmp" with contents
+[
+/browser:"Debug/" /check:bounds /compile_only /dbglibs /nologo /traceback /warn:argument_checking /warn:nofileopt /winapp /module:"Debug/" /object:"Debug/" 
+"C:\Users\Struchenkov\Desktop\MYNEWCopy_ rxy1dnewfort\Point.for"
+]
+Creating temporary file "C:\Users\STRUCH~1\AppData\Local\Temp\RSP7AA8.tmp" with contents
+[
+version.lib kernel32.lib /nologo /subsystem:windows /incremental:no /pdb:"Debug/Reorxy1.pdb" /debug /machine:I386 /out:"Debug/Reorxy1.exe" /pdbtype:sept 
+".\Debug\abdx1.obj"
+".\Debug\Aldfp.obj"
+".\Debug\Almo.obj"
+".\Debug\Alregm.obj"
+".\Debug\Conlaf.obj"
+".\Debug\Func.obj"
+".\Debug\Grad.obj"
+".\Debug\Point.obj"
+".\Debug\Point_new0.obj"
+".\Debug\Pointg.obj"
+".\Debug\Reo.obj"
+".\Debug\rewfort.obj"
+".\Debug\Start.obj"
+".\Debug\rewfort.res"
+]
+Creating command line "link.exe @C:\Users\STRUCH~1\AppData\Local\Temp\RSP7AA8.tmp"
+<h3>Output Window</h3>
+Compiling Fortran...
+C:\Users\Struchenkov\Desktop\MYNEWCopy_ rxy1dnewfort\Point.for
+Linking...
+Creating temporary file "C:\Users\STRUCH~1\AppData\Local\Temp\RSP7C8E.tmp" with contents
+[
+/nologo /o"Debug/rewfort.bsc" 
+".\Debug\abdx1.sbr"
+".\Debug\Aldfp.sbr"
+".\Debug\Almo.sbr"
+".\Debug\Alregm.sbr"
+".\Debug\Conlaf.sbr"
+".\Debug\Func.sbr"
+".\Debug\Grad.sbr"
+".\Debug\Point.sbr"
+".\Debug\Point_new0.sbr"
+".\Debug\Pointg.sbr"
+".\Debug\Reo.sbr"
+".\Debug\rewfort.sbr"
+".\Debug\Start.sbr"]
+Creating command line "bscmake.exe @C:\Users\STRUCH~1\AppData\Local\Temp\RSP7C8E.tmp"
+Creating browse info file...
+<h3>Output Window</h3>
+
+
+
+<h3>Results</h3>
+Reorxy1.exe - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

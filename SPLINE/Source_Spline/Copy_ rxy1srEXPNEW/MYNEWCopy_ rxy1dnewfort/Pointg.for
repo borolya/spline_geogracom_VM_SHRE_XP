@@ -1,0 +1,845 @@
+
+
+
+      SUBROUTINE POINTG(it)
+      INCLUDE 'INTERFCS.INC'
+C----------------------------------------------------------------------
+C
+C                                       03.03.89
+C
+C      OПTИMИЗAЦИЯ ЭЛEMEHTOB ПЛAHA PEKOHCTPУИPУEMOГO ИЛИ BTOPOГO ПУTИ
+C      BEPCИЯ 3.0
+C
+C      ПOДГOTOBKA K BЫЧИCЛEHИЮ ГPAДИEHTOB - OПPEДEЛEHИE
+C      ЧACTHЫX ПPOИЗBOДHЫX.
+C
+C      BXOД: /LINE/,/SHIFT/,/POINTS/,/VARPTR/
+C
+C      BЫXOД: /DERIV/,/DSHIFT/
+Cпри досрочном пересечении последнего поперечника для всех клотоид 
+C до конца трассы JFIRST(1и2,i)=npoint+1
+C______________________________________________________________________
+C
+c      REAL *8 X(*)
+
+      INCLUDE 'COMMONS.INC' 
+	!в нём есть ksi(1,i),eta(i,i),phi(1,i) в начале i-ой клотоиды,
+	! c 2,i-в конце
+	integer it
+      common/dob1/ beta,ugk,lpclo
+	real*8 beta(1000),ugk(1000),lpclo(1000),sdv,pov,nap,xa,ya,x,y
+	real*8 a,b,c,d,d1,sdvig,naprav
+c углы с осью Х поперечников и касательных к плану трассы в точках пересечения
+c sdv,pov,nap- соответственно производные сдвигов,поворотов
+c варьируемой переменной и направления сдвигов может быть 1,2,3 если сложная
+c вариация, например изменение кривизны меняет клотоиду слева и окружность, 
+       !а справа????
+c inach-  точка правее варьируемого элемента с неё начнем сдвиг и поворот
+c  x,y- ее координаты, а xa1,ya1,xa2,ya2
+c- координаты центра поворота ( конец клотоиды или окружности) 
+      INTEGER NC1,JVAR,inach,i,j,i1,i2,j1,j2,jit,zn
+      real*8 s,lp,s1
+      real*8 xb,yb,la1,lb,phia,phib,sigb,sx,sy	
+c	integer pr
+c	pr=0
+	jit=150
+	 
+c- lp-длина от начала клотоиды до пересеч с поперечником
+      NC1 = NCURV+1
+c       write(1,77)phifin,phi(2,ncurv+1)
+   77 format(2x,' phifin=',f9.7,' phi(2,ncurv+1)=',f9.7)
+C------ BЫЧИCЛEHИE ПPOИЗBOДHЫX PИXTOBOK ПO  X
+C
+         DO 202 I=1,npoint
+            DO 201 J=1,NVAR
+      DSHX(I,J) = 0D0 ! производная рихтовки i по переменной xj
+  201    continue
+  202    CONTINUE
+C это от всех рихтовок  по всем переменным на начальной прямой они и останутся
+c- для каждой переменной вычислить производимые ею сдвиги и повороты
+c (точнее производные), разобраться с варьируемыми элементами, а затем всё, что
+c правее обработать по сдвигам и поворотам
+            
+	!	  if(it.eq.-2) then
+	!do j=1,3
+      !write(1,7671) sig(j),k(j),l(j),la(j),phi(1,j),phi(2,j)
+      ! enddo
+	!endif
+ 7671	 format(/2x,' sig=',f9.7,' k=',f9.7,' l=',f12.6,/' la=',f12.6,
+     @ 'phi1=',f9.6,' phi2=',f9.6)
+		  
+		  DO 249 J=1,NVAR
+               J1 = TYPVAR(J)
+         JVAR = NUMVAR(J) !NUMVAR(1)==1 был не определён и не используется
+      	  !if(it.eq.0) write(1,7675) j,j1,jvar
+ 7675 format(2x,'j=',i4,' tip=',i4,' jvar=',i4)
+     	
+	 ! if(it.eq.0) write(1,7670)j,j1,jvar,JFIRST(1,jvar), JFIRST(2,jvar) 
+ 7670  format(2x,'j=',i4,' typ=',i4,' jvar=',i4,
+     #' JFIRST(1,jvar)=',i4,' JFIRST(2,jvar)=',i4) 
+
+c- jvar-номер варьируемого элемента в начальной нумерации, j- номер
+c- переменной при фиксации некоторых элементов
+c- jfirst(1,i)-первая точка на клотоиде jfirst(2,i)- первая точка за клотоидой
+       
+               GO TO (210,220,230,240),J1
+C-----------------------ПPOИЗBOДHAЯ ПO  XL
+  210             CONTINUE
+      inach=JFIRST(1,1) 
+      !sdv=1.0
+      nap=ugk(1)
+c      call sdvig(1.0,ugk(1))
+       do  i=inach,npoint
+       dshx(i,j)=dshx(i,j)+dsin(nap-ugk(i))/dsin(beta(i)-ugk(i))
+        ! if(it.eq.26) then
+	!s=nap-ugk(i)
+	!s1=beta(i)-ugk(i)
+       !write(1,400) i,j,  dshx(i,j) 
+	 !write(1,500) nap,ugk(i),beta(i),s,s1,shift(i)
+	!endif
+c   обработкa от jfirst(1,1) до конца от сдвига
+  400 format(/2x,'нач прямая i=',i4,' j=',i4,' dshx=',f10.3)
+  500 format(/2x,' nap=',f9.6,' ugk(i)=',f9.6,' beta=',f9.6,
+     @/' nap-ugk=',f9.6,' beta-ugk=',f9.6,' shift=',f9.4) 
+       enddo
+       go to 249 ! на конец цикла по переменным задачи j
+  220 CONTINUE
+       
+C -------------------ПРОИЗВОДНАЯ ПО КРИВИЗНЕ
+! узнать окружность пересекает последний поперечник , до него
+! или за ним производная по  sig меняются клотоиды слева и справа 
+c  и окружность по 3  сдвига и поворота
+c  jvar-номер варьируемого элемента
+       if(la(jvar).lt.0.0001) go to 249
+c нет окружности -нет и кривизны
+       i1=jfirst(1,jvar)  !начало клотоиды слева    
+       i2=jfirst(2,jvar)-1 !конец  клотоиды слева точнее первая точка окружности
+	! if(j.gt.24) then
+       !write(1,66) jvar,i1,i2,npoint
+   66 format(2x,'кривизна jvar=',i4,' i1=',i4,' i2=',i4,' npoint=',i4)
+	
+	 if(i2.gt.npoint) go to 250
+	  ! за цикл по переменным вся окр ушла
+      
+	if(l(jvar).lt.0.002) go to 221
+	if(abs(k(jvar)).lt.0.0000000001) go to 221
+	 ! если выродилась в прямую клотоида слева то уйти на окружность
+c на окружность, начнем внутри левой разбираться
+      
+c-i1,i2- это номера поперечников на концах клотоиды разобраться когда их нет то есть они редкие????      
+      
+c-вычисляем длину от начала клотоиды теперь она в массиве lpclo
+       xa=ksi(1,jvar)
+	 ya=eta(1,jvar)
+	  a=phi(1,jvar) ! угол касательной в начале  левой клотоиды
+        b=0.0
+	 if(jvar.gt.1) b=sig(jvar-1)
+	 c=k(jvar)
+	la1=b/c ! sigA/k
+	if(i2.lt.i1) go to 222 !Нет поперечников внутри нет и производных
+	 !if((it.eq.jit).and.(j.gt.75))
+      ! &	 write (1,11) j,jvar,a,b,c,la1,l(jvar)
+   11 format(2x,' j=',i4,' jvar=',i4,' a=',f12.8,' b=',f9.6,' c=',f12.9,
+     #/'la1=',f8.2,' l=',f8.2 ) 
+      do 223 j2=i1,i2
+	 d=lpclo(j2)
+	lb=la1+d
+	!++++++++++++
+	 ! call conlf_1(xa,ya,a,b,c,d,xb,yb,phib,sigb)
+	 xb=xev(j2)+shift(j2)*dcos(beta(j2))
+       yb=yev(j2)+shift(j2)*dsin(beta(j2))
+       phib=a+b*d+c*d*d/2.0
+	!++++++++++
+       sx=(xa-xb+la1*dcos(a)+lb*dcos(phib)-2.0*la1*dcos(phib))/c/2+
+     $la1*la1*(ya-yb)/2
+	 sy=(ya-yb+la1*dsin(a)+lb*dsin(phib)-2.0*la1*dsin(phib))/c/2+
+     # la1*la1*(xb-xa)/2
+	s1=(sy*dcos(ugk(j2))-sx*dsin(ugk(j2)))/dsin(beta(j2)-ugk(j2))/
+     $ l(jvar)
+       !if((it.eq.jit).and.(j.gt.75)) then
+	 !if(j2.lt.i1+4)
+       !#  write(1,72)sx,sy,xa,xb,ya,yb,phib,d,j
+	  !             endif
+   72  format(/2x,' sx=',f9.2,' sy=',f9.3,' xa=',f9.2,' xb=',f9.2,/
+     $' ya=',f9.2,' yb=',f9.2, ' phib=',f9.6,' d=',f12.8,' j=',i4)
+	
+	dshx(j2,j)=dshx(j2,j)+s1
+	 !if((it.eq.jit).and.(j.gt.75)) then
+	!       write(1,401) j,j2,s1,beta(j2),ugk(j2)
+	 !          endif
+  223  continue !end по j2
+
+  401 format(2x,'добавка внутри левой за кривизну j=',i4,' j2=',i4,
+     #' s1=',f12.5,' beta=',f12.6,' ugk=',f9.6)
+c- закончили внутри левой клотоиды теперь ее влияние на правую часть
+
+  222 continue
+       inach=jfirst(2,jvar) ! это первая точка окружности
+       
+	 d=l(jvar)
+       
+	lb=la1+d
+  	 !+++++++++
+
+	   !call conlf_1(xa,ya,a,b,c,d,xb,yb,phib,sigb)
+	xb=ksi(2,jvar)
+	yb=eta(2,jvar)
+	phib=phi(2,jvar)
+       !++++++
+
+       sx=((xa-xb+la1*dcos(a)+lb*dcos(phib)-2.0*la1*dcos(phib))/c/2+
+     $la1*la1*(ya-yb)/2)/d
+	 sy=((ya-yb+la1*dsin(a)+lb*dsin(phib)-2.0*la1*dsin(phib))/c/2+
+     # la1*la1*(xb-xa)/2)/d
+
+	 !s1- это производная сдвига правой точки клотоиды по sig справа
+       do  i=inach,npoint
+	 s1=(sy*dcos(ugk(i))-sx*dsin(ugk(i)))/dsin(beta(i)-ugk(i))
+	 !if((it.eq.jit).and.(j.gt.75)) then
+	!if(i.gt.74)
+       !$ write(1,402) i,j,sx,sy,ugk(i),beta(i),s1,inach
+        !          endif
+
+  402 format (/2x,'402 по сигме от левой сдвиг i=',i3,' j=',i3,
+     @/' sx=',f12.3,' sy=',f12.3,
+     #' ugk=',f9.6,' beta=',f9.6,' s1=',f12.4,' inach=',i4)   
+
+       dshx(i,j)=dshx(i,j)+s1
+        enddo ! конец сдвига во вне с постоянными sx,sy
+       xa=ksi(2,jvar)
+       ya=eta(2,jvar)
+       pov=l(jvar)/2.0
+c       call rot(xa,ya,pov)
+       do  i=inach,npoint
+       x=xev(i)+shift(i)*dcos(beta(i))
+       y=yev(i)+shift(i)*dsin(beta(i))
+       s1=((x-xa)*dcos(ugk(i))+(y-ya)*dsin(ugk(i)))/
+     # dsin(beta(i)-ugk(i))*pov
+       dshx(i,j)=dshx(i,j)+s1
+         !if((it.eq.jit).and.(j.gt.75)) then
+	!if(i.gt.74)
+      !$  write(1,403) i,j,s1,pov,ugk(i),beta(i),x,xa,y,ya
+	 !   endif
+  403  format(/2x,'403 rot от левой клотоиды при сигме i=',i3,' j=',i3,
+     #' s1=',f12.4,' pov=', f7.2,' ugk=',f9.6,' beta=', f9.6,
+     #/' x=',f9.2,' xa=',f9.2,' y=',f8.3,' ya=',f8.3) 
+       enddo
+  221  continue
+
+c-закончили с левой переходим к круговой сначала внутри
+      i1=jfirst(2,jvar) ! первая точка окружности     
+      i2=jfirst(1,jvar+1)-1
+	 ! последняя точка окружн. если за концом тогда npoint+2
+	!j- номер переменной,j2-  номер точки
+
+      if(i2.gt.npoint) i2=npoint
+c-это номера поперечников jfirst(1,jvar) первый внутри клотоиды jfirst(2,jvar) первый за ней
+c   разобраться когда их нет????      
+      if(i2.lt.i1) go to 252       
+      
+	 ! if((it.eq.jit).and.(j.gt.75))
+      !#  write(1,5403) sig(jvar),la(jvar),phi(2,jvar)
+ 5403  format(/2x,'окружность sig=',f12.8,' la=',f12.6,' phi=',f12.8)
+      do 253 j2=i1,i2
+       !Здесь всё по простому
+         a=phi(2,jvar)
+         b=ugk(j2)
+
+       !+++++++++++++
+        !xa=ksi(2,jvar)
+       !ya=eta(2,jvar)
+       !xb=xev(j2)+shift(j2)*dcos(beta(j2))
+       !yb=yev(j2)+shift(j2)*dsin(beta(j2))
+       !s=ugk(j2)-phi(2,jvar) !Это угол поворота до пересечения j2-го поперечника 
+       ! d=sig(jvar) 
+       !sx=(s/d*dcos(b)+xa-xb)/d
+       ! sy=(s/d*dsin(b)+ya-yb)/d  
+       !++++++++++++++      
+
+        s=ugk(j2)-phi(2,jvar) !Это угол поворота b-a
+         d=sig(jvar)*sig(jvar)
+        sx=(dsin(a)-dsin(b)+s*dcos(b))/d
+        sy=(dcos(b)-dcos(a)+s*dsin(b))/d
+
+
+             s1=(sy*dcos(b)-sx*dsin(b))/dsin(beta(j2)-b)
+         	dshx(j2,j)=dshx(j2,j)+s1  
+	 !if((it.eq.jit).and.(j.gt.75)) 
+      !#    write(1,5000) j2,j,a,ugk(j2),sx,sy,s1
+ 5000   format(2x,'внутри j2=',i4,' j=',i4,' нач a=',f9.6,
+     #' кон уг=',f9.6,/,' sx=',f15.6,' sy=',f15.6,' s1=',f15.6)
+         go to 253   
+c      Конец нового
+
+c      s1=-(1-cos(ugk(j2)-phi(2,jvar))) неверно в конечной точке должно давать общий сдвиг
+c     #sin(ugk(j2)-beta(j2))/sig(jvar)/sig(jvar)
+cc      s=ugk(j2)-phi(2,jvar) !это угол поворота от начала кривой
+cc	
+cc      s1=2.0-2.0*cos(s)-2.0*s*sin(s)+s*s 
+cc       if(s1.lt.0.0) then
+cc      write(1,7676) j,i1,jvar,j2,ugk(j2),phi(2,jvar),s,s1
+ 7676 format(/2x,'минус в pointg внутри круговой j=',i4,/
+     #' i1=',i3, ' jvar=',i4,' j2=',i4,' ugk=',f9.5,' phi=',f9.5,
+     #	' s=',f12.10,' s1=',f14.12)
+cc	endif
+       a=ugk(j2)-phi(2,jvar)
+       b=2.0-2.0*dcos(a)-2.0*a*dsin(a)+a*a
+	if(b.lt.-0.000001) then
+      write(1,7676) j,i1,jvar,j2,ugk(j2),phi(2,jvar),a,b
+	close(1)
+	stop
+	endif
+	if(b.lt.1.e-12) b=0.0 
+       ! при  b<-0.000001 уже ушли!!!
+      sdv=dsqrt(b)
+	s=a
+      sdv=sdv/sig(jvar)/sig(jvar)! это абсолютная величина сдвига
+      s1=(1-dcos(s)-s*dsin(s))/(dsin(s)-s*dcos(s))
+	if(dabs(dsin(s)-s*dcos(s)).lt.0.000000001) then
+	nap=3.1415926/2.0
+	if((1-dcos(s)-s*dsin(s)).gt.0.0) nap=nap+3.1415926
+	write(1,*)' M1 POINTG'
+	GO TO 1
+	endif
+	
+      nap=datan(s1)       
+       
+	  ! if((it.eq.jit).and.(j.gt.75)) then
+     	 !write(1,1403) s1,ugk(j2),sdv
+	  !            endif
+ 1403  format (/2x,'внутри окружн при сигме s1='f12.6,' ugk=',f12.8,
+     #'sdv=',f12.6)
+	
+      if((dsin(s)-s*dcos(s)).gt.0.0) nap=nap+3.1415926
+	 !это направление без учёта начального угла
+    1	nap=nap+phi(2,jvar)
+      s1=dsin(nap-ugk(j2))/dsin(beta(j2)-ugk(j2))*sdv
+      dshx(j2,j)=dshx(j2,j)+s1
+	 
+	 !if((it.eq.jit).and.(j.gt.75)) then
+	!if(j2.gt.74)
+      !& write(1,404) j2,j,s1,nap,sdv,beta(j2),ugk(j2),s,jvar  
+	 !           endif
+
+  404  format(/2x,'внутри окружности  при сигме j2=',i3,' j=',i3,
+     #' s1=',f12.6,' nap=',f9.6,' sdv=',f15.8,' beta=',f9.6,
+     #/' ugk=',f9.6,' s=',f9.6,' jvar=',i3) 
+c j- номер переменной по которой производная, но номер элемента jvar
+  253 continue !внутри закончили
+  252  continue
+c на 252  когда нет точек на кривой теперь влияние круговой на правую часть      
+       inach=i2+1 !i2- последняя на окружн
+      ! if(inach.gt.npoint) go to 254
+	  if(inach.gt.npoint) go to 249
+c новое ??????  не на 250 потому что ещё есть переменная длина окружности
+       ! обработка идёт в порядке : длина клотоиды, кривизна, длина окружности
+        a=phi(2,jvar) ! В начале круговой
+         b=phi(1,jvar+1) ! В конце круговой
+       !+++++++++++++
+	!xa=ksi(2,jvar)
+	!ya=eta(2,jvar)
+	!xb=ksi(1,jvar+1)
+	!yb=eta(1,jvar+1)
+	!sx=(la(jvar)*dcos(b)+xa-xb)/sig(jvar)
+	 !	sy=(la(jvar)*dsin(b)+ya-yb)/sig(jvar)
+	!++++++++++++++
+
+
+         s=la(jvar)*sig(jvar) !Это угол поворота
+        d=sig(jvar)*sig(jvar)
+        sx=(dsin(a)-dsin(b)+s*dcos(b))/d
+        sy=(dcos(b)-dcos(a)+s*dsin(b))/d
+               
+       !if((it.eq.jit).and.(j.gt.75)) 
+      !#     write(1,5001) j2,j,a,b,sx,sy
+ 5001   format(2x,'конец окр j2=',i4,' j=',i4,' нач a=',f9.6,
+     #' кон уг=',f9.6,/' sx=',f15.6,' sy=',f15.6)
+          
+		do  i=inach,npoint
+	s1=(sy*dcos(ugk(i))-sx*dsin(ugk(i)))/dsin(beta(i)-ugk(i))
+	
+         !write(1,4402) i,j,sx,sy,ugk(i),beta(i),s1
+                  
+
+ 4402 format (/2x,' по сигме от окр сдвиг i=',i3,' j=',i3,
+     @/' sx=',f12.3,' sy=',f12.3,
+     #' ugk=',f9.6,' beta=',f9.6,' s1=',f12.4)   
+
+       dshx(i,j)=dshx(i,j)+s1
+        enddo ! конец сдвига во вне с постоянными sx,sy
+        go to  4455        
+cконец нового
+
+
+      s=sig(jvar)*la(jvar)
+c      if(s.lt.0.0) s=-s
+      s1=2.0-2.0*dcos(s)-2.0*s*dsin(s)+s*s
+      if(s1.lt.0.0)then
+	write(1,1801)s1
+ 1801	format(/2x,' pointg s1<0 s1=',f16.8)
+      close(1)
+	 stop 
+	endif
+      sdv=sqrt(s1)
+      sdv=sdv/sig(jvar)/sig(jvar)
+      s1=(1-dcos(s)-s*dsin(s))/(dsin(s)-s*dcos(s))
+	if(dabs(dsin(s)-s*dcos(s)).lt.0.00000001) then
+	nap=3.1415926/2.0
+	if((1-dcos(s)-s*dsin(s)).gt.0.0) nap=nap+3.1415926
+	GO TO 2
+	endif
+      nap=datan(s1)       
+	     
+	 ! if((it.eq.jit).and.(j.gt.75)) write(1,4403) s1,nap
+ 4403  format (/2x,'сдвиг от окруж при сигме  s1=',f12.6,' nap=',f12.8)
+	
+      if((dsin(s)-s*dcos(s)).gt.0.0) nap=nap+3.1415926
+    2	nap=nap+phi(2,jvar) ! Нужно учесть начальный угол пси
+c сомнительны nap,sdv. dR<0, dx=dR*(sin(s)-scos(s))
+       do  i=inach,npoint
+      s1=dsin(nap-ugk(i))/dsin(beta(i)-ugk(i))*sdv
+       dshx(i,j)=dshx(i,j)+s1
+        !if((it.eq.jit).and.(j.gt.75)) then
+	!if(i.gt.74)
+      !#  write(1,405) i,j,s1,nap,sdv,s,ugk(i),beta(i)
+	 !             endif
+  405  format(/2x,'405 sdv от окружн при сигме i=',i3,' j=',i3,
+     #' s1=',f12.5,' nap=',f9.6,/' sdv=', f12.3,' s=',f9.5,
+     #' ugk=',f9.6,' beta=',f9.6) 
+        enddo
+ 4455      continue
+	 xa=ksi(1,jvar+1)
+	ya=eta(1,jvar+1)
+      pov=la(jvar)
+
+       do  i=inach,npoint
+       x=xev(i)+shift(i)*dcos(beta(i))
+       y=yev(i)+shift(i)*dsin(beta(i))
+       s1=((x-xa)*dcos(ugk(i))+(y-ya)*dsin(ugk(i)))/
+     # dsin(beta(i)-ugk(i))*pov
+       dshx(i,j)=dshx(i,j)+s1
+        !if((it.eq.jit).and.(j.gt.75)) then
+	!if(i.gt.74)
+      !$  write(1,406) i,j,s1,pov,ugk(i),beta(i),x,xa,y,ya
+	 !            endif
+  406  format(/2x,'406 rot от окружн при сигмеi=',i3,' j=',i3,/
+     #' s1=',f12.3,' pov=',f7.2,' ugk=',f9.6,' beta=',f9.6,/
+     #' x=',f9.2,' xa=',f9.2,' y=',f9.4,' ya=',f9.4) 
+       enddo
+  254 continue
+   
+
+c- теперь правая клотоида, если она есть
+      if(l(jvar+1).lt.0.002) go to 249 !jvar+1 есть концевая клотоида
+	if(abs(k(jvar+1)).lt.0.000000001)go to 249
+c на следуюший элемент, при нулевой клотоиде или при её вырождении в прямую
+       !начнем внутри правой разбираться
+      i1=jfirst(1,jvar+1)      
+      i2=jfirst(2,jvar+1)-1 
+	! последняя точка правой клотоиды если заехала то >npoint
+c      if(jvar.eq.NCURV) i2=npoint   !!! ПОЧЕМУ
+c-это номера поперечников на концах клотоиды разобраться когда их нет????      
+      
+       xa=ksi(1,jvar+1)
+	 ya=eta(1,jvar+1)
+	   a=phi(1,jvar+1) ! угол касательной на  правой клотоидe
+       b=sig(jvar) ! кривизна в начале клотоиды по окружности слева поэтому jvar
+	 c=k(jvar+1)
+	d1=l(jvar+1)
+	la1=b/c ! sigA/k
+	
+	if(i2.lt.i1) go to 2221
+       if(i2.gt.npoint) i2=npoint
+      do 2231 j2=i1,i2
+	 d=lpclo(j2)
+	lb=la1+d
+	 !if((it.eq.jit).and.(j.gt.75)) then
+	!if(j2.gt.74)
+      !&write(1,1003) j2,i1,i2,la1,shift(j2),a,b,c,d,jvar
+ 1003 format(/2x,' j2=',i4,' i1=',i4,' i2=',i4,' la1=',f7.2,
+     &/'shift=',f12.1,' phi=',f9.6,' sig=',f12.6,
+     &' k=',f19.17,' d=',f6.2,' jvar=',i4)
+	 ! endif
+       !+++++++++++
+
+	!call conlf_1(xa,ya,a,b,c,d,xb,yb,phib,sigb)
+       phib=a+b*d+c*d*d/2.0
+	  xb=xev(j2)+shift(j2)*dcos(beta(j2))
+       yb=yev(j2)+shift(j2)*dsin(beta(j2))
+	!++++++++++
+       sx=(xa-xb+la1*dcos(a)+lb*dcos(phib)-2.0*la1*dcos(phib))/c/2+
+     $la1*la1*(ya-yb)/2 ! это dx/dk надо dx/dsiga поэтому
+	  sx=-sx/d1
+	 sy=(ya-yb+la1*dsin(a)+lb*dsin(phib)-2.0*la1*dsin(phib))/c/2+
+     # la1*la1*(xb-xa)/2
+       sy=-sy/d1 ! пересчитал на производную по кривизне слева за k
+	!if((it.eq.jit).and.(j.gt.75)) then
+	!if(j2.gt.74)
+      !&write(1,1004)xb,yb,xev(j2),yev(j2),lb,phib,sx,sy,la1
+ 1004 format(/2x,' xb=',f9.2,' yb=',f9.2,' xev=',f9.2,' yev=',f9.2,
+     &/'lb=',f15.6,' phib=',f9.5,' sx=',f9.1,' sy=',f9.1,' la1=',f12.4)   
+       !endif
+	sx=sx+(dcos(phib)-dcos(a))/c+la1*(yb-ya) ! добавил производную dx/dsiga частная без k
+	sy=sy+(dsin(phib)-dsin(a))/c-la1*(xb-xa) 
+	! теперь производная смещения на поперечнике по siga
+	s1=(sy*dcos(ugk(j2))-sx*dsin(ugk(j2)))/dsin(beta(j2)-ugk(j2))
+      !if((it.eq.jit).and.(j.gt.75)) then
+	!if(j2.gt.74)
+      !&write(1,1005) j2,sx,sy,la1,s1,xa,ya,dshx(j2,j)
+ 1005 format(/2x,'1005 j2=',i4,' sx=',f12.3,' sy=',f12.3,' la1=',f12.3,
+     &/' s1=',f14.2,' xa=',f9.2,' ya=',f9.2,' dshx(j2,j)=',f15.2)
+	 ! endif
+      dshx(j2,j)=dshx(j2,j)+s1
+	 !if((it.eq.jit).and.(j.gt.75)) then
+	!if(j2.gt.74)
+      !$write(1,407)j2,j,d1,s1,d,ugk(j2),beta(j2)
+	 !               endif
+  407  format(/2x,'внутри правой при сигме j2=',i3,' j=',i3,' d1=',f9.5
+     #/' s1=',f12.5,' lp=', f10.4,
+     #/' ugk=',f9.6,' beta=',f9.6) 
+c знак ,,,???
+ 2231 continue
+c- закончили внутри правой клотоиды теперь ее влияние на правую часть
+ 2221 continue      
+c=========
+c       if(jvar.eq.NCURV) go to 249
+        
+       inach=jfirst(2,jvar+1) !первая точка за правой клотоидой
+	if(i2.gt.npoint) go to 249 
+	! нельзя на 250 так как ещё длину окружности надо
+       lb=la1+d1
+	!++++++++++
+       !call conlf_1(xa,ya,a,b,c,d1,xb,yb,phib,sigb)
+       xb=ksi(2,jvar+1)
+	 yb=eta(2,jvar+1)
+	phib=phi(2,jvar+1)
+	!+++++++++++++=
+       sx=(xa-xb+la1*dcos(a)+lb*dcos(phib)-2.0*la1*dcos(phib))/c/2+
+     $la1*la1*(ya-yb)/2 ! это dx/dk надо dx/dsiga поэтому
+	  sx=-sx/d1
+	 sy=(ya-yb+la1*dsin(a)+lb*dsin(phib)-2.0*la1*dsin(phib))/c/2+
+     # la1*la1*(xb-xa)/2
+       sy=-sy/d1 ! пересчитал на производную по кривизне слева за k
+	sx=sx+(dcos(phib)-dcos(a))/c+la1*(yb-ya) ! добавил производную dx/dsiga частная без k
+	sy=sy+(dsin(phib)-dsin(a))/c-la1*(xb-xa) 
+	! теперь производная смещения на  поперечнике по siga
+	
+	 !if((it.eq.jit).and.(j.gt.75)) then
+       !if(i.gt.74)
+      !$write(1,4407)jvar,a,b,c,d
+	 !               endif
+ 4407 format(\2x,'4407сдвиг от правой jvar=',i4,' a=',f9.6,' b=',f9.6,
+     *' c=',f15.12,' d=',f8.2)
+       do  i=inach,npoint
+      s1=(sy*dcos(ugk(i))-sx*dsin(ugk(i)))/dsin(beta(i)-ugk(i))
+	 
+       dshx(i,j)=dshx(i,j)+s1
+	 
+	 !	 if((it.eq.jit).and.(j.gt.75)) then 
+	 !if(i.gt.74)
+      !$  write(1,408) i,j,s1,ugk(i),beta(i)
+	 !              endif
+  408  format(/2x,'408 sdv от правой при сигме i=',i3,' j=',i3,
+     &/' s1=',f12.5,' ugk=',f9.6,' beta=',f9.6) 
+        enddo
+
+
+       xa=ksi(2,jvar+1)
+       ya=eta(2,jvar+1)
+       pov=l(jvar+1)/2.0
+c       call rot(xa,ya,pov)
+       
+	 do  i=inach,npoint
+       x=xev(i)+shift(i)*dcos(beta(i))
+       y=yev(i)+shift(i)*dsin(beta(i))
+       s1=((x-xa)*dcos(ugk(i))+(y-ya)*dsin(ugk(i)))/
+     # dsin(beta(i)-ugk(i))*pov
+       dshx(i,j)=dshx(i,j)+s1
+	  !if((it.eq.jit).and.(j.gt.75)) then      
+	!if(i.gt.74) write(1,409) i,j,s1,pov,ugk(i),beta(i),x,xa,y,ya
+	 !        endif
+  409  format(/2x,'409 rot от правой при сигме i=',i3,' j=',i3,
+     &/' s1=',f12.5,' pov=',f12.5,' ugk=',f9.6,'beta=',f9.6,
+     #/' x=',f9.4,' xa=',f9.4,'y= ',f9.4,' ya=',f9.4) 
+       enddo
+	
+       go to 249
+
+c - закончили с правой      
+C-----------------------ПPOИЗBOДHAЯ ПO  LA
+  230 CONTINUE
+       
+       if(la(jvar).lt.0.0001) go to 249
+       inach=jfirst(1,jvar+1)
+	!if(j.gt.24) then
+	!write(1,67) jvar,inach,la(jvar)
+   67 format(2x,'LA jvar=',i4,' inach=',i4,' la(jvar)=',f7.2)
+	!endif
+	if(inach.gt.npoint)go to 250 
+	! трасса кончилась раньше конца окружности и её удлинение ничего не меняет
+       nap=phi(1,jvar+1)
+       sdv=1.0
+c       call sdvig(sdv,nap)
+       do  i=inach,npoint
+       s1=dsin(nap-ugk(i))/dsin(beta(i)-ugk(i))*sdv
+       dshx(i,j)=dshx(i,j)+s1
+       
+	 !if((it.eq.jit).and.(j.gt.75)) then
+	!if(i.gt.74)
+      !$ write(1,410) i,j,inach,s1,ugk(i),nap,beta(i)
+	  !         endif
+  410  format(2x,'410 sdv от  окружности i=',i3,' j=',i3,' inach=',i4,
+     #/' s1=',f12.5,' ugk(i)=',f7.3,' nap=',f9.6,' beta=',f9.6) 
+        enddo
+       if(dabs(sig(jvar)).lt.1.E-9) go to 249
+       xa=ksi(1,jvar+1)
+       ya=eta(1,jvar+1)
+       pov=sig(jvar)
+c       call rot(xa,ya,pov)
+       do  i=inach,npoint
+       x=xev(i)+shift(i)*dcos(beta(i))
+       y=yev(i)+shift(i)*dsin(beta(i))
+       s1=((x-xa)*dcos(ugk(i))+(y-ya)*dsin(ugk(i)))/
+     # dsin(beta(i)-ugk(i))*pov
+       dshx(i,j)=dshx(i,j)+s1
+	  !if((it.eq.jit).and.(j.gt.75)) then 
+	 !if(i.gt.74)     
+       !# write(1,411) i,j,s1,shift(i),pov,ugk(i),beta(i),x,xa,y,ya,
+      ! #dshx(i,j)
+	 !              endif
+  411  format(2x,'411 rot от самой окружности i=',i3,' j=',i3,
+     #' s1=',f12.5,' shift(i)=',f7.3,/' pov=',f9.6,' ugk=',f9.6,
+     #' beta=',f9.6,' x=',f9.4,' xa=',f9.4,' y=',f9.4,' ya=' f9.4
+     #,/' dshx(i,j)=',f9.4) 
+       enddo
+		
+       go to 249
+c- закончили с  окружностью
+  240  CONTINUE
+C-----------------------ПPOИЗBOДHAЯ ПO  L
+       !if((it.eq.jit).and.(j.gt.75)) then 
+	 !  write(1,7674) sig(jvar),k(jvar),l(jvar),la(jvar)
+	  !      endif
+ 7674	 format(/2x,' sig=',f9.7,' k=',f9.7,' l=',f9.6,' la=',f10.6)
+
+      if(l(jvar).lt.0.002) go to 249
+	i1=jfirst(1,jvar)      
+      i2=jfirst(2,jvar)-1
+	!if(j.gt.24) then
+      ! write(1,68) jvar,i1,i2,npoint
+   68 format(2x,'L jvar=',i4,' i1=',i4,' i2=',i4,' npoint=',i4)
+	!endif
+	!начало и конец клотоиды если она пересекла последний поперечник i2>npoint
+	if(i1.gt.npoint) go to 250 ! вся клотоида за поперечниками
+	if(i2.gt.npoint)i2=npoint ! засылали больше, но считать только до npoint 
+	if(abs(k(jvar)).lt.0.000000001) go to 2222
+c-- сначала внутри клотоиды
+      
+c-это номера поперечников на концах клотоиды разобраться когда их нет????      
+      if(i2.lt.i1) go to 2222
+c- это кривизна в начале клотоиды она больше не нужна дальше
+      a=phi(1,jvar) ! угол касательной в начале  клотоиды
+	b=0.0
+	 if(jvar.gt.1) b=sig(jvar-1) ! кривизна в начале клотоиды
+	 c=k(jvar)
+       xa=ksi(1,jvar)
+	 ya=eta(1,jvar)
+	  
+	la1=b/c ! sigA/k
+	 
+	 !if((it.eq.jit).and.(j.gt.75))  write(1,1415)a,b,c,i1,i2
+ 1415  format(/2x,'a=phi=', f9.6,' b=sig=',f10.7,' c=k=',f9.6,
+     #' i1=',i4,' i2=',i4)
+        do 2232 j2=i1,i2
+      !
+       d=lpclo(j2)
+       lb=la1+d
+	!+++++++++++=
+	!call conlf_1(xa,ya,a,b,c,d,xb,yb,phib,sigb)
+         xb=xev(j2)+shift(j2)*dcos(beta(j2))
+       yb=yev(j2)+shift(j2)*dsin(beta(j2))
+       phib=a+b*d+c*d*d/2.0
+	!!+++++++++++++++++++++++++=
+       sx=(xa-xb+la1*dcos(a)+lb*dcos(phib)-2.0*la1*dcos(phib))/c/2+
+     $la1*la1*(ya-yb)/2
+	 sy=(ya-yb+la1*dsin(a)+lb*dsin(phib)-2.0*la1*dsin(phib))/c/2+
+     # la1*la1*(xb-xa)/2
+	s1=(sy*dcos(ugk(j2))-sx*dsin(ugk(j2)))/dsin(beta(j2)-ugk(j2))/
+     $ l(jvar)*(-c) !dl/dk=-k/l
+	 !if((it.eq.jit).and.(j.gt.75))then
+	 !if(j2.gt.74)
+      !#  write(1,721)sx,sy,xa,xb,ya,yb,phib,d
+	 !           endif
+  721 format(/2x,'внутри за k по l клотоиды sx=',f13.3,' sy=',f15.3,
+     # ' xa=',f9.2,' xb=',f9.2,
+     #/' ya=',f9.2,' yb=',f9.2, ' phib=',f9.6,' d=',f12.8)
+	
+      dshx(j2,j)=dshx(j2,j)+s1
+
+       !if((it.eq.jit).and.(j.gt.75)) then	
+      !if(j2.gt.74)
+      !$write(1,415)j2,j,sx,sy,s1,d,jvar,l(jvar),k(jvar),dshx(j2,j)
+	 ! endif
+  415  format(/2x,'внутри клотоиды за k при ее длине j2=',i3,' j=',i3,
+     #' sx=',f12.5,' sy=',f12.5,' s1=',f12.5,' lp=', f9.4,
+     # /' jvar=',i3,' l=',f7.2,' k=',f12.9,' dshx(j2,j)=',f12.5) 
+ 2232 continue
+c- закончили внутри  клотоиды теперь ее влияние на правую часть
+ 2222 continue
+       if(i2.ge.npoint)  go to 250
+
+	  ! было пересечение последнего поперечника
+	
+      inach=jfirst(2,jvar) !конец клотоиды +1
+      nap=phi(2,jvar) 
+       !if(inach.gt.npoint) go to 249
+	if(inach.gt.npoint) go to 250
+	
+       do  i=inach,npoint
+       s1=dsin(nap-ugk(i))/dsin(beta(i)-ugk(i))
+       dshx(i,j)=dshx(i,j)+s1
+	 !if((it.eq.jit).and.(j.gt.75)) then
+	!if(i.gt.74)
+      !$  write(1,412) i,j,s1,nap,ugk(i),beta(i),inach
+       !           endif
+  412  format(/2x,'sdv от клотоиды без к i=',i3,' j=',i3,' s1=',f12.5,
+     #/' nap=',f9.6,' ugk=',f9.6,' beta=',f9.6,' inach=',i4) 
+        enddo
+c- это сдвиг по касательной за изменение длины без учетa изменения к
+       	if(abs(k(jvar)).lt.0.000000001) go to 249 
+		! при вырождении клотоиды только сдвиг за длину
+       xa=ksi(2,jvar)
+       ya=eta(2,jvar)
+       s=0.0
+       if(jvar.ne.1) s=sig(jvar-1)
+       pov=(s+sig(jvar))/2.0      
+
+        
+	  do  i=inach,npoint
+       x=xev(i)+shift(i)*dcos(beta(i))
+       y=yev(i)+shift(i)*dsin(beta(i))
+       s1=((x-xa)*dcos(ugk(i))+(y-ya)*dsin(ugk(i)))/
+     # dsin(beta(i)-ugk(i))*pov
+       dshx(i,j)=dshx(i,j)+s1
+        !if((it.eq.jit).and.(j.gt.75)) then
+       !if(i.gt.74)
+      !$write(1,413) i,j,s1,pov,shift(i),ugk(i),beta(i),x,xa,y,ya
+	 !    endif
+  413  format(/2x,'rot от клотоиды суммар i=',i3,' j=',i3,' s1=',f12.5,
+     #/' pov=',f9.6,' shift=',f7.3,' ugk=',f9.6,' beta=',f9.6,
+     #/' x=',f8.2,' xa=',f8.2,' y=',f8.3,' ya=',f8.3) 
+       enddo
+c-  поворот за удлинение без учета изменения к =sig плюс к дает (s-sig)/2
+         a=phi(1,jvar) ! угол касательной  в начале клотоиды
+	b=0.0
+	 if(jvar.gt.1) b=sig(jvar-1)
+	 c=k(jvar)
+	 d=l(jvar)
+      !++++++++
+       xa=ksi(1,jvar)
+	 ya=eta(1,jvar)
+	 la1=b/c ! sigA/k
+	 !++++++++++++++++
+       lb=la1+d
+       !+++++++++++++++++++++
+
+	!call conlf_1(xa,ya,a,b,c,d,xb,yb,phib,sigb)
+	xb=ksi(2,jvar)
+	 yb=eta(2,jvar)
+	phib=phi(2,jvar)
+	!+++++++++++++++
+       sx=(xa-xb+la1*dcos(a)+lb*dcos(phib)-2.0*la1*dcos(phib))/c/2+
+     $la1*la1*(ya-yb)/2
+	 sy=(ya-yb+la1*dsin(a)+lb*dsin(phib)-2.0*la1*dsin(phib))/c/2+
+     # la1*la1*(xb-xa)/2
+	 !if((it.eq.jit).and.(j.gt.75)) then
+	 
+       !write(1,722) sx,sy,xa,xb,ya,yb,phib,d
+	  !          endif
+  722  format(/2x,'722 по l клотоиды в конце sx=',f9.2,' sy=',f9.3,
+     # ' xa=',f9.2,' xb=',f9.2,/
+     $' ya=',f9.2,' yb=',f9.2, ' phib=',f9.6,' d=',f12.8)
+	
+	
+      ! write(1,420)jvar,phi(2,jvar),l(jvar),nap,k(jvar),sdv,sdvig
+  420 format(2x,'за k jvar=',i4,' phi(2,jvar)=',f12.7,' l=',f12.4,
+     #/' nap=',f9.5,' k(jvar)=',f12.8,' sdv=',f18.1,' sdvig=',f18.1)
+
+       do  i=inach,npoint
+      s1=(sy*dcos(ugk(i))-sx*dsin(ugk(i)))/dsin(beta(i)-ugk(i))/
+     $ l(jvar)*(-c) !dl/dk=-k/l
+       dshx(i,j)=dshx(i,j)+s1
+	 !if((it.eq.jit).and.(j.gt.75)) then
+	 !if(i.gt.74)
+       !$  write(1,421) i,j,s1,ugk(i),beta(i)
+	  !       endif
+  421  format(2x,'sdv от клотоиды за к во вне i=',i4,' j=',i3,
+     #/' s1=',f12.8,' ugk(i)=',f9.5,' beta(i)=',f12.9)
+c       write(1,414) i,j,s1
+  414  format(/2x,'sdv от клотоиды за к по нормали i=',i3,' j=',i3,
+     #' dshx(i,j)=',f12.5) 
+        enddo
+c-это сдвиг  во вне клотоиды  за счет к
+       
+  249 CONTINUE ! конец цикла по переменным
+cгде это делать               DSHX(I,J) = DSHX(I,J)*WGTVAR(J1)
+  250 continue 
+       ! if(it.eq.0) then
+            DO 239 J=1,NVAR
+             J1 = TYPVAR(J)
+         do 238 i=1,npoint
+         DSHX(I,J) = DSHX(I,J)*WGTVAR(J1)
+	 ! write(1,1001) i,j, dshx(i,j)
+ 1001 format(/2x,' i=',i4,' j=',i4,' dshx(i,j)=', f15.6) 
+      !i-номер элемента, j-номер точки НАОБОРОТ
+  238 continue 
+  239 continue 
+       !close(1)
+	!stop
+       !     endif
+             
+      RETURN
+      END
+       
+	subroutine znak(nap,ugkas,i22)
+c возвращает 1 если нормаль и направление составляют острый угол 
+	 real*8 nap,ugkas,pi,nap1,ugk,s
+	integer i22
+	i22=0
+	pi=3.1415926
+	nap1=nap
+	ugk=ugkas
+       if(nap.lt.0) nap1=nap+pi !ощибка надо 2 pi
+	if(ugk.lt.0) ugk=ugk+pi
+       s=dabs(ugk+pi/2.0-nap)
+	if(s.gt.pi) s=s-pi
+	if(s.lt.pi/2.0) i22=1
+	
+	! write (1,1)i22
+    1 format(/2x,' znak i22=',i5)
+	return
+	end
+
+c       subroutine sdvig(sdv,nap)
+c       real sdv,nap
+c       do 200 i=inach,npoint
+c       dshx(i,j)=dshx(i,j)+sin(nap-ugk(i))/sin(beta(i)-ugk(i))*sdv
+c  200 continue
+c       return
+c       end
+
+c       subroutine rot(xa,ya,pov)
+c       INCLUDE 'COMMONS.INC'
+c       real xa,ya,pov
+c       real x,y
+c       do 200 i=inach,npoint
+c       x=xev(i)+shift(i)*cos(beta(i))
+c       y=yev(i)+shift(i)*sin(beta(i))
+c       dshx(i,j)=dshx(i,j)+((x-xa)*cos(ugk(i))+(y-ya)*sin(ugk(i)))/
+c     # sin(beta(i)-ugk(i))*pov
+c  200  continue
+c       return
+c       end
+
+c=================
+
