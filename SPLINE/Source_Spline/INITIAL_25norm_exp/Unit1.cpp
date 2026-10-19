@@ -685,83 +685,98 @@ t=(Rmin1+s2/Rmin1)*tan(s1)+L/2.; //t-тангенс при Rmin1
 
  void pech(void)
   {   //Здесь-число точек пока n на 1 меньше
-   int j,j1,j2,k;double s3; //s3-global
- pi2=pi/2.0;
- //etap=0;//только биссектрисы
- ipp=0;//пeчать
-  f1=fopen("Test_VUxy.txt","wt");
-  //Xmax надо суммарную длину а там максим Х координата
-  Xmax=x[n-1];
-   fprintf(f1,"\n n=%d,Xmax=%8.2lf,dx=%8.2lf,dy=%8.2lf,dugl=%9.6lf,maxrix=%6.3lf",
-           n,Xmax,dx,dy,dugl,maxrix);
- fprintf(f1,"\n x[0]=%8.2lf,beta[0]=%9.6lf",x[0],beta[0]);
- fprintf(f1,"\n x[n-1]=%8.2lf,beta[n-1]=%8.6lf,beta[n]=%8.6lf",
-                 x[n-1],beta[n-1],beta[n]);
-  fprintf(f1,"\n xt[0]=%8.2lf,xt[1]=%8.2lf,xt[n-1]=%8.2lf,xt[n]=%8.2lf",
-  xt[0],xt[1],xt[n-1],xt[n]);
-  // абсциссы- это текущая сумма длин хорд, а не координаты
-  //всего абсцисс n а не n+1, а точек съёмки,т.е. нормалей n+1(c 0->n включительно)
- //начальная прямая  dx=dy=dugl=0.0 в BOHINI но вообще не обязательно
-//координаты точек сЪёмки xt[0->n],yt[0->n], их n+1,
-// а абсциссы x[0->n-1] и бета сдвинуты n уменьшен в cxema при вводе
-//x[0]- длина первой хорды от нулевой до первой точки;
-//всего абсцисс n а не n+1  c 0 n-1
- dL=10.; kdL=16,kdR=24;//no in Form6
-  fprintf(f1,"\nn=%d,Lmin=%7.2lf,Lmax=%7.2lf,dL=%5.2lf,Rmax=%8.2lf",
-  n,Lmin,Lmax,dL,Rmax);
-   fprintf(f1,"\nRmin=%8.2lf",Rmin);
- fprintf(f1,"\nlmin=%6.2lf,lmax=%6.2lf,lkmin=%6.2lf,lprmin=%6.2lf",
-               lmin,lmax,lkmin,lprmin);
-  fprintf(f1,"\nnpr=%d,nug=%d,dpr=%5.2lf,dug=%7.5lf,kdR=%d,kdL=%d",
-            npr,nug,dpr,dug,kdR,kdL);
- n_pts=n+1;  //n- номер последней точки съёмки в исходной нумерации
- // n_pts- число точек всего
-      int in,kk;   in=0;
-       for(int i1=1;i1<n;i1++)
-       {
-       if(fabs(-(xt[i1]-dx)*sin(dugl)+(yt[i1]-dy)*cos(dugl))>dH/2.)
-       {in=i1-1; break;}
-       }//for i1 попытка заданным углом построить первый элемент
-  if(!in){ShowMessage("Весь участок-это одна прямая");
-          fclose(f1); exit(0);}
- nach=in+NNom(Lmin);//по правому концу накрывшей хорды
- kon=NNom(Xmax-Lmin)-1;
- xl=dx; yl=dy; ugl=dugl;
- //ugl=dugl исходные возможно изменение при ndef до perv
+    int j,j1,j2,k;double s3; //s3-global
+    pi2=pi/2.0;
+    //etap=0;//только биссектрисы
+    ipp=0;//пeчать
+    f1=fopen("Test_VUxy.txt","wt");
+    //Xmax надо суммарную длину а там максим Х координата
+    Xmax=x[n-1];
+    fprintf(f1,"\n n=%d,Xmax=%8.2lf,dx=%8.2lf,dy=%8.2lf,dugl=%9.6lf,maxrix=%6.3lf",
+                n,Xmax,dx,dy,dugl,maxrix);
+    fprintf(f1,"\n x[0]=%8.2lf,beta[0]=%9.6lf",x[0],beta[0]);
+    fprintf(f1,"\n x[n-1]=%8.2lf,beta[n-1]=%8.6lf,beta[n]=%8.6lf",
+                  x[n-1],beta[n-1],beta[n]);
+    fprintf(f1,"\n xt[0]=%8.2lf,xt[1]=%8.2lf,xt[n-1]=%8.2lf,xt[n]=%8.2lf",
+                xt[0],xt[1],xt[n-1],xt[n]);
+    // абсциссы- это текущая сумма длин хорд, а не координаты
+    //всего абсцисс n а не n+1, а точек съёмки,т.е. нормалей n+1(c 0->n включительно)
+    //начальная прямая  dx=dy=dugl=0.0 в BOHINI но вообще не обязательно
+    //координаты точек сЪёмки xt[0->n],yt[0->n], их n+1,
+    // а абсциссы x[0->n-1] и бета сдвинуты n уменьшен в cxema при вводе
+    //x[0]- длина первой хорды от нулевой до первой точки;
+    //всего абсцисс n а не n+1  c 0 n-1
+    dL=10.; kdL=16,kdR=24;//no in Form6
+    fprintf(f1,"\nn=%d,Lmin=%7.2lf,Lmax=%7.2lf,dL=%5.2lf,Rmax=%8.2lf",
+              n,Lmin,Lmax,dL,Rmax);
+    fprintf(f1,"\nRmin=%8.2lf",Rmin);
+    fprintf(f1,"\nlmin=%6.2lf,lmax=%6.2lf,lkmin=%6.2lf,lprmin=%6.2lf",
+              lmin,lmax,lkmin,lprmin);
+    fprintf(f1,"\nnpr=%d,nug=%d,dpr=%5.2lf,dug=%7.5lf,kdR=%d,kdL=%d",
+              npr,nug,dpr,dug,kdR,kdL);
+    n_pts=n+1;  //n- номер последней точки съёмки в исходной нумерации
+    // n_pts- число точек всего
+    int in,kk;   in=0;
+    for(int i1=1;i1<n;i1++)
+    {
+      if(fabs(-(xt[i1]-dx)*sin(dugl)+(yt[i1]-dy)*cos(dugl))>dH/2.)
+      {
+        in=i1-1; break;
+      }
+    }//for i1 попытка заданным углом построить первый элемент
+    
+    if(!in)
+    {
+      ShowMessage("Весь участок-это одна прямая");
+      fclose(f1); exit(0);
+    }
+    nach=in+NNom(Lmin);//по правому концу накрывшей хорды
+    kon=NNom(Xmax-Lmin)-1;
+    xl=dx; yl=dy; ugl=dugl;
+    //ugl=dugl исходные возможно изменение при ndef до perv
 
- fprintf(f1,"\nnach=%d,xt[nach]=%6.2lf,xt[nach+1]=%6.2lf",
-                nach,xt[nach],xt[nach+1]);
- fprintf(f1,"\nпо старой kon=%d,x[kon-1]=%7.2lf",kon, x[kon-1]);
-  kon=kon-nach;//в новую нумерацию c новым nach
-//до этой нормали строить без последнего элемента
-  tetamin=(lmin+lkmin)/Rmax; // использую !!
-  inach=0; //для perv  в новой нумерации  ikon за Lmax от nach
-  //====   /есть глобальная s3
-   j1=0;//vse нужны a для коротких участков будет j1=1 только perv
- // s3=Lmax;if(s3>Xmax-Lmin)s3= Xmax-Lmin;
-  if(Xmax<2.*Lmin){j1=1;ikon=n-nach;}//достаточно perv
-  else ikon=NNom (x[nach-1]+Lmax)-nach;//правая точка
-  fprintf(f1,"\n для perv inach=%d,ikon=%d,j1=%d,kon=%d",
+    fprintf(f1,"\nnach=%d,xt[nach]=%6.2lf,xt[nach+1]=%6.2lf",
+                    nach,xt[nach],xt[nach+1]);
+    fprintf(f1,"\nпо старой kon=%d,x[kon-1]=%7.2lf",kon, x[kon-1]);
+    kon=kon-nach;//в новую нумерацию c новым nach
+    //до этой нормали строить без последнего элемента
+    tetamin=(lmin+lkmin)/Rmax; // использую !!
+    inach=0; //для perv  в новой нумерации  ikon за Lmax от nach
+    //====   /есть глобальная s3
+    j1=0;//vse нужны a для коротких участков будет j1=1 только perv
+    // s3=Lmax;if(s3>Xmax-Lmin)s3= Xmax-Lmin;
+    if(Xmax<2.*Lmin)
+    {
+      j1=1;ikon=n-nach;
+    }//достаточно perv
+    else ikon=NNom (x[nach-1]+Lmax)-nach;//правая точка
+    fprintf(f1,"\n для perv inach=%d,ikon=%d,j1=%d,kon=%d",
                      inach,ikon,j1,kon);
     // kon-для последнего эл-та, а inach,ikon для первого
     Nnorm=n-nach+1;//n+1-число точек  с 0->n  54
     //число нормалей для поиска до конечной точки беру все!!1
-  fprintf(f1,"\nn=%d,nach=%d,Nnorm=%d",n,nach,Nnorm);
-  masnorm=new NORMAL[Nnorm];
+    fprintf(f1,"\nn=%d,nach=%d,Nnorm=%d",n,nach,Nnorm);
+    masnorm=new NORMAL[Nnorm];
     for(int i=0;i<Nnorm;i++)
- {  masnorm[i].point=NULL;
- masnorm[i].pr=0;//признак блокировки на длинных прямых
- }
- nzapf=-1; nzapmax=0;
-   sum=sumall=0.0;
-   perv(); //в пределах inach=0 до  ikon-последняя за Lmin  до конца
- if(!nzapmax)
- {  ShowMessage("Не построен первый элемент.Меняем азимут");
-  fprintf(f1,"\n Не построен первый элемент.Меняем азимут");
-   delete []masnorm; pribl=0;
- }  else {pribl=1;
- fprintf(f1,"\nafter perv nzapf=%d,nzapmax=%d,dugl=%9.6lf",
-               nzapf,nzapmax,dugl);}
+    {
+      masnorm[i].point=NULL;
+      masnorm[i].pr=0;//признак блокировки на длинных прямых
+    }
+    nzapf=-1; nzapmax=0;
+    sum=sumall=0.0;
+    perv(); //в пределах inach=0 до  ikon-последняя за Lmin  до конца
+    if(!nzapmax)
+    {
+      ShowMessage("Не построен первый элемент.Меняем азимут");
+      fprintf(f1,"\n Не построен первый элемент.Меняем азимут");
+      delete []masnorm; pribl=0;
+    }
+    else
+    {
+      pribl=1;
+      fprintf(f1,"\nafter perv nzapf=%d,nzapmax=%d,dugl=%9.6lf",
+               nzapf,nzapmax,dugl);
+    }
   //fclose(f1); exit(0);
 //++++
  if(dH>0.001)priamaia(xt,yt);else ndef=0;
