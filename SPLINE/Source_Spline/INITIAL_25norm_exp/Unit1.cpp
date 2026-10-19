@@ -777,173 +777,198 @@ t=(Rmin1+s2/Rmin1)*tan(s1)+L/2.; //t-тангенс при Rmin1
       fprintf(f1,"\nafter perv nzapf=%d,nzapmax=%d,dugl=%9.6lf",
                nzapf,nzapmax,dugl);
     }
-  //fclose(f1); exit(0);
-//++++
- if(dH>0.001)priamaia(xt,yt);else ndef=0;
-  if(!pribl)
-  {
-  nach=NNom(Lmin);
- //  plan не нужен  работать по "абсциссам"plan[q].s=x[q-1]
-   if(ndef&&def[0].kon>nach)//def[0].kon-конец прямой
- {//иначе прямая короче Lmin и не влияет на nach
-if(def[0].nach<=1)
-   {//прямая с самого начала
- fprintf(f1,"\nnach=%d,dugl=%9.6lf,xkon=%7.2lf,Lmin=%5.2lf",
-            nach,dugl, x[def[0].kon-1],Lmin);
- nach=NNom(x[def[0].kon-1]+Lmin); //по правому концу
-  dugl=ugl=ugol(xt[0],yt[0],xt[def[0].kon],yt[def[0].kon]);
-  ShowMessage("Угол взят по прямой с нуля dugl="+AnsiString(dugl));
-  fprintf(f1,"\nnach=%d,dugl=%9.6lf,def=%d",nach,dugl,def[0].kon);
-   // выправил начальный угол ЕГО НАДО ДАЛЬШЕ УЧЕСТЬ!!!
-// вариант с def[0].nach>0 но ближе к началу чем  Lmin
-   } else
-     {  if(def[0].nach<nach)
- ShowMessage("Начало на кривой.Возможны проблемы с первым элементом");
-     }
- }//if ndef  с углом надо разбираться!
- }//!pribl если не построен первый элемент
-
- //абсцисса( расст от начала по ломаной) x[nach-1], было x[nach]    ошибка
-  fprintf(f1,"\nnach=%d,xt[nach]=%6.2lf,xt[nach+1]=%6.2lf",
-                nach,xt[nach],xt[nach+1]);
-  fprintf(f1,"\n x[0]=%6.2lf,x[1]=%6.2lf",x[0],x[1]);
-  ////
- //kon=NNom(Xmax-Lmin);
- kon=NNom(Xmax-Lmin)-1;//нет ndef или нет прямой в конце
-  if(ndef )
- { if (def[ndef-1].kon==n)
-    kon=NNom(x[def[ndef-1].nach-1]-Lmin)-1;//левая точка
-  //kon-конечная нормаль до неё дойти по vse и не далее
-   else
-  if(Xmax-x[def[ndef-1].kon-1]<Lmin)
-   ShowMessage("Последняя точка на кривой.Возможны проблемы с последним элементом");
-  } //есть ndef
-
-  //беру начало накрывшей хорды, иначе близко к концу
- fprintf(f1,"\nпо старой kon=%d,x[kon-1]=%7.2lf",kon, x[kon-1]);
-  kon=kon-nach;//в новую нумерацию c новым nach
-//до этой нормали строить без последнего элемента
- // tetamin=(lmin+lkmin)/Rmax; // использую !!
-  inach=0; //для perv  в новой нумерации  ikon за Lmax от nach
-  //====   /есть глобальная s3
-   j1=0;//vse нужны a для коротких участков будет j1=1 только perv
- // s3=Lmax;if(s3>Xmax-Lmin)s3= Xmax-Lmin;
-  if(Xmax<2.*Lmin){j1=1;ikon=n-nach;}//достаточно perv
-  else ikon=NNom (x[nach-1]+Lmax)-nach;//правая точка
-  fprintf(f1,"\n для perv inach=%d,ikon=%d,j1=%d,kon=%d",
-                     inach,ikon,j1,kon);
-  // kon-для последнего эл-та, а inach,ikon для первого
- if(!pribl){
-    Nnorm=n-nach+1;//n+1-число точек  с 0->n  54
-    //число нормалей для поиска до конечной точки беру все!!1
-  fprintf(f1,"\nn=%d,nach=%d,Nnorm=%d",n,nach,Nnorm);
-  masnorm=new NORMAL[Nnorm];
-    for(int i=0;i<Nnorm;i++)
- {  masnorm[i].point=NULL;
- masnorm[i].pr=0;//признак блокировки на длинных прямых
- }
- }//if!pribl
- double ugolpr;
- if(ndef)
- {  int jj1;//нельзя портить j1
-   for (int i=0;i<ndef;i++)
-   {  if(def[i].nach<=nach)continue;
-     jj1= def[i].nach;j2=def[i].kon;//в старой нумерации
- ugolpr=ugol(xt[jj1],yt[jj1],xt[j2],yt[j2]); // для нормалей
- fprintf(f1,"\n i=%d,jj1=%d,j2=%d,ugolpr=%9.6lf",i,jj1,j2,ugolpr);
-    for(int k=jj1;k<=j2;k++)
+    //fclose(f1); exit(0);
+    //++++
+    if(dH>0.001)
+      priamaia(xt,yt);
+    else
+      ndef=0;
+    if(!pribl)
     {
-     masnorm[k-nach].pr= j2-nach-3;
-      if(k>=j2-3)
-  { fprintf(f1,"\npech k=%d,do beta[k]=%9.6lf",k,beta[k]);
-      beta[k]=ugolpr+pi2 ;
-   fprintf(f1,"\n k=%d,pos beta[k]=%9.6lf",k,beta[k]);
-   //это номер нормали куда перейти при попадании на прямую
-  }
-    }//end for k
-    }//end for i
-      }//end if ndef
-     //надо пометить все точки зоны конечная -3-nach
-  // в четырёх последних исправил нормали,вычисляя угол
-  //если последняя точка на прямой, то нормаль поправлена и там
-  delete []plan;
-   if(!pribl)
-  {
-    nzapf=-1; nzapmax=0;
-    sum=sumall=0.0;
-   //fclose(f1); exit(0);
-       perv();
-   if(ndef&& def[0].nach==0)
- {  FILE *nu;
- nu=fopen("nach_ugl.txt","wt");
- fprintf(nu,"%15.6lf",dx);
- fprintf(nu,"\n%15.6lf",dy);
-  //временно вместо dugl
- fprintf(nu,"\n%12.8lf",dugl);
- fclose(nu);
- }
+      nach=NNom(Lmin);
+      //  plan не нужен  работать по "абсциссам"plan[q].s=x[q-1]
+      if(ndef&&def[0].kon>nach)//def[0].kon-конец прямой
+      {//иначе прямая короче Lmin и не влияет на nach
+        if(def[0].nach<=1)
+        {//прямая с самого начала
+          fprintf(f1,"\nnach=%d,dugl=%9.6lf,xkon=%7.2lf,Lmin=%5.2lf",
+                nach,dugl, x[def[0].kon-1],Lmin);
+          nach=NNom(x[def[0].kon-1]+Lmin); //по правому концу
+          dugl=ugl=ugol(xt[0],yt[0],xt[def[0].kon],yt[def[0].kon]);
+          ShowMessage("Угол взят по прямой с нуля dugl="+AnsiString(dugl));
+          fprintf(f1,"\nnach=%d,dugl=%9.6lf,def=%d",nach,dugl,def[0].kon);
+        // выправил начальный угол ЕГО НАДО ДАЛЬШЕ УЧЕСТЬ!!!
+        // вариант с def[0].nach>0 но ближе к началу чем  Lmin
+        } 
+        else
+        {
+          if(def[0].nach<nach)
+          ShowMessage("Начало на кривой.Возможны проблемы с первым элементом");
+        }
+      }//if ndef  с углом надо разбираться!
+    }//!pribl если не построен первый элемент
 
- fprintf(f1,"\nafter perv nzapf=%d,nzapmax=%d,dugl=%9.6lf",
-               nzapf,nzapmax,dugl);
-   //fclose(f1);Form1->Close();exit(0);
+    //абсцисса( расст от начала по ломаной) x[nach-1], было x[nach]    ошибка
+    fprintf(f1,"\nnach=%d,xt[nach]=%6.2lf,xt[nach+1]=%6.2lf",
+                nach,xt[nach],xt[nach+1]);
+    fprintf(f1,"\n x[0]=%6.2lf,x[1]=%6.2lf",x[0],x[1]);
+    ////
+    //kon=NNom(Xmax-Lmin);
+    kon=NNom(Xmax-Lmin)-1;//нет ndef или нет прямой в конце
+    if(ndef )
+    {
+      if (def[ndef-1].kon==n)
+        kon=NNom(x[def[ndef-1].nach-1]-Lmin)-1;//левая точка
+        //kon-конечная нормаль до неё дойти по vse и не далее
+      else
+        if(Xmax-x[def[ndef-1].kon-1]<Lmin)
+          ShowMessage("Последняя точка на кривой.Возможны проблемы с последним элементом");
+    } //есть ndef
 
-   if(!nzapmax){ShowMessage("2Не построен первый элемент");
-    fclose(f1);Form1->Close();exit(0);
-             }
- }//if(!pribl)
-   Form1->Fild->Visible=false;
-  Form1->Panel1->Visible=false;
-  if(!j1)// подготовка пределов для  vse с использованием posl
- { //posl не вызываю с j1==1, vse до конца если не хватает perv
-    //правая от  (2Lmin  до n-nach а не kon )
-   // j2=Nnom(2.*Lmin)-nach;
-   // в нумерации нормалей это для правой j2->n-nach (kon)
-    // левая от max из(правая -Lmax,Lmin) до правая -Lmin)
- //k-текущая правая s3=x(k+nach-1) её абсцисса; s2=max(s3-Lmax,Lmin)-абсцисса
- //начала левой при заданной правой NNom(s2)-nach её номер для начала цикла
-    // NNom(s3-Lmin)-nach- конец цикла по левой
-  /* есть nzapf-nzapmax-интервал изменения левой это уже построеные
-  возможно с дырками   для каждой левой nver определяю границы
-  изменения правой  как nver+Lmin
-  с переводом в номер точки (левая граница) nver+Lmax но не ближе Lmin от конца
-posl внутри два цикла по точкам и углам а цикла по левым нет. Он вынесен на
-верх в интервал   nzapf-nzapmax
-  */
-  pov=2;
- vse();
-  if( masnorm[Nnorm-1].point[npr].ukp!=NULL)
-  {
-   if(masnorm[Nnorm-1].point[npr].ukp[nug].sv!=NULL)
-  fprintf(f1,"\nafter vse nzapmax=%d,sum по центру =%7.2lf",
- nzapmax,masnorm[Nnorm-1].point[npr].ukp[nug].sv->sum);
-  //else { fclose(f1);return;}
- }
- }
- nkr=zapline(nprz,nugz);// nprz,nugz-номер точки и угла
-//записана линия (можно не центр а оптимальную взять!)
-//далее её анализ и оптимизация
-fprintf(f1,"\nend zapline nkr=%d",nkr);
- opt_line();
- fprintf(f1,"\n afterline");
- zapis(nprz,nugz);//временно
- fprintf(f1,"\nend zapis");
- fprintf(f1," \nНачальное приближение построено");
-  fclose(f1);
- return; //в Praktika кнопка Рассчитать
- //etap=1;
- pov=0;
- //pervnew();// только для Line[0]->norm (24)
- pov=2;
-fprintf(f1,"\nend pervnew");
- //newvse();  не нашёл её
-fprintf(f1,"\nend newvse");
-   nkr=zapline(nprz,nugz);   //есть ли линия???
- opt_line(); //  портит sum и не пишет в masnorm
+    //беру начало накрывшей хорды, иначе близко к концу
+    fprintf(f1,"\nпо старой kon=%d,x[kon-1]=%7.2lf",kon, x[kon-1]);
+    kon=kon-nach;//в новую нумерацию c новым nach
+    //до этой нормали строить без последнего элемента
+    // tetamin=(lmin+lkmin)/Rmax; // использую !!
+    inach=0; //для perv  в новой нумерации  ikon за Lmax от nach
+    //====   /есть глобальная s3
+    j1=0;//vse нужны a для коротких участков будет j1=1 только perv
+    // s3=Lmax;if(s3>Xmax-Lmin)s3= Xmax-Lmin;
+    if(Xmax<2.*Lmin)
+    {
+      j1=1;
+      ikon=n-nach;
+    }//достаточно perv
+    else 
+      ikon=NNom(x[nach-1]+Lmax)-nach;//правая точка
+    fprintf(f1,"\n для perv inach=%d,ikon=%d,j1=%d,kon=%d",
+                      inach,ikon,j1,kon);
+    // kon-для последнего эл-та, а inach,ikon для первого
+    if(!pribl)
+    {
+      Nnorm=n-nach+1;//n+1-число точек  с 0->n  54
+      //число нормалей для поиска до конечной точки беру все!!1
+      fprintf(f1,"\nn=%d,nach=%d,Nnorm=%d",n,nach,Nnorm);
+      masnorm=new NORMAL[Nnorm];
+      for(int i=0;i<Nnorm;i++)
+      {
+       masnorm[i].point=NULL;
+        masnorm[i].pr=0;//признак блокировки на длинных прямых
+      }
+    }//if!pribl
+    double ugolpr;
+    if(ndef)
+    {
+      int jj1;//нельзя портить j1
+      for (int i=0;i<ndef;i++)
+      {
+        if(def[i].nach<=nach)
+          continue;
+        jj1= def[i].nach;j2=def[i].kon;//в старой нумерации
+        ugolpr=ugol(xt[jj1],yt[jj1],xt[j2],yt[j2]); // для нормалей
+        fprintf(f1,"\n i=%d,jj1=%d,j2=%d,ugolpr=%9.6lf",i,jj1,j2,ugolpr);
+        for(int k=jj1;k<=j2;k++)
+        {
+          masnorm[k-nach].pr= j2-nach-3;
+          if(k>=j2-3)
+          {
+            fprintf(f1,"\npech k=%d,do beta[k]=%9.6lf",k,beta[k]);
+            beta[k]=ugolpr+pi2 ;
+            fprintf(f1,"\n k=%d,pos beta[k]=%9.6lf",k,beta[k]);
+            //это номер нормали куда перейти при попадании на прямую
+          }
+        }//end for k
+      }//end for i
+    }//end if ndef
+      //надо пометить все точки зоны конечная -3-nach
+    // в четырёх последних исправил нормали,вычисляя угол
+    //если последняя точка на прямой, то нормаль поправлена и там
+    delete []plan;
+    if(!pribl)
+    {
+      nzapf=-1;
+      nzapmax=0;
+      sum=sumall=0.0;
+      //fclose(f1); exit(0);
+      perv();
+      if(ndef&& def[0].nach==0)
+      {
+        FILE *nu;
+        nu=fopen("nach_ugl.txt","wt");
+        fprintf(nu,"%15.6lf",dx);
+        fprintf(nu,"\n%15.6lf",dy);
+        //временно вместо dugl
+        fprintf(nu,"\n%12.8lf",dugl);
+        fclose(nu);
+      }
+      fprintf(f1,"\nafter perv nzapf=%d,nzapmax=%d,dugl=%9.6lf",
+                nzapf,nzapmax,dugl);
+      //fclose(f1);Form1->Close();exit(0);
 
- zapis(nprz,nugz);  //центрального без выбора пока
- udal();
- fclose(f1);
- return;//posl in vse
+      if(!nzapmax)
+      {
+        ShowMessage("2Не построен первый элемент");
+        fclose(f1);
+        Form1->Close();
+        exit(0);
+      }
+    }//if(!pribl)
+    
+    Form1->Fild->Visible=false;
+    Form1->Panel1->Visible=false;
+    if(!j1)// подготовка пределов для  vse с использованием posl
+    { //posl не вызываю с j1==1, vse до конца если не хватает perv
+      //правая от  (2Lmin  до n-nach а не kon )
+      // j2=Nnom(2.*Lmin)-nach;
+      // в нумерации нормалей это для правой j2->n-nach (kon)
+      // левая от max из(правая -Lmax,Lmin) до правая -Lmin)
+      //k-текущая правая s3=x(k+nach-1) её абсцисса; s2=max(s3-Lmax,Lmin)-абсцисса
+      //начала левой при заданной правой NNom(s2)-nach её номер для начала цикла
+      // NNom(s3-Lmin)-nach- конец цикла по левой
+      /* есть nzapf-nzapmax-интервал изменения левой это уже построеные
+      возможно с дырками   для каждой левой nver определяю границы
+      изменения правой  как nver+Lmin
+      с переводом в номер точки (левая граница) nver+Lmax но не ближе Lmin от конца
+      posl внутри два цикла по точкам и углам а цикла по левым нет. Он вынесен на
+      верх в интервал   nzapf-nzapmax
+      */
+      pov=2;
+      vse();
+      if( masnorm[Nnorm-1].point[npr].ukp!=NULL)
+      {
+        if(masnorm[Nnorm-1].point[npr].ukp[nug].sv!=NULL)
+          fprintf(f1,"\nafter vse nzapmax=%d,sum по центру =%7.2lf",
+                nzapmax,masnorm[Nnorm-1].point[npr].ukp[nug].sv->sum);
+        //else { fclose(f1);return;}
+      }
+    }
+
+    
+    nkr=zapline(nprz,nugz);// nprz,nugz-номер точки и угла
+    //записана линия (можно не центр а оптимальную взять!)
+    //далее её анализ и оптимизация
+    fprintf(f1,"\nend zapline nkr=%d",nkr);
+    opt_line();
+    fprintf(f1,"\n afterline");
+    zapis(nprz,nugz);//временно
+    fprintf(f1,"\nend zapis");
+    fprintf(f1," \nНачальное приближение построено");
+    fclose(f1);
+    return; //в Praktika кнопка Рассчитать
+    //etap=1;
+    pov=0;
+    //pervnew();// только для Line[0]->norm (24)
+    pov=2;
+    fprintf(f1,"\nend pervnew");
+    //newvse();  не нашёл её
+    fprintf(f1,"\nend newvse");
+    nkr=zapline(nprz,nugz);   //есть ли линия???
+    opt_line(); //  портит sum и не пишет в masnorm
+
+    zapis(nprz,nugz);  //центрального без выбора пока
+    udal();
+    fclose(f1);
+    return;//posl in vse
   }//pech
 
  int pervnew(void)
