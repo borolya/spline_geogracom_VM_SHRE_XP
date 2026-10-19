@@ -955,20 +955,6 @@ t=(Rmin1+s2/Rmin1)*tan(s1)+L/2.; //t-тангенс при Rmin1
     fprintf(f1," \nНачальное приближение построено");
     fclose(f1);
     return; //в Praktika кнопка Рассчитать
-    //etap=1;
-    pov=0;
-    //pervnew();// только для Line[0]->norm (24)
-    pov=2;
-    fprintf(f1,"\nend pervnew");
-    //newvse();  не нашёл её
-    fprintf(f1,"\nend newvse");
-    nkr=zapline(nprz,nugz);   //есть ли линия???
-    opt_line(); //  портит sum и не пишет в masnorm
-
-    zapis(nprz,nugz);  //центрального без выбора пока
-    udal();
-    fclose(f1);
-    return;//posl in vse
   }//pech
 
  int pervnew(void)
