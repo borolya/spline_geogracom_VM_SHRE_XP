@@ -1,0 +1,21 @@
+file,points,length_m,origin_x,origin_y,sampling,max_lateral_noise_m,purpose,expected_legacy_branch
+01_left_dense_clean.txt,331,660.0,496180.158,4983238.572,fixed 2 m,0.00,One left turn; reference geometry for sampling/noise comparison,One left-hand turn complex
+02_left_a146_step_low_noise.txt,67,660.0,496180.158,4983238.572,fixed 10 m,0.15,"Same axis as case 01, A146-like step and low survey noise",Same solution topology as case 01
+03_left_sparse_rough.txt,28,660.0,496180.158,4983238.572,variable 18/27/35/22 m,1.20,"Same axis as case 01, variable sparse survey and rough noise",Tests stability against sparse noisy input
+04_right_turn.txt,141,700.0,100000.000,200000.000,fixed 5 m,0.05,One right turn,One right-hand turn complex
+05_s_curve.txt,139,960.0,350000.000,5200000.000,variable 4/7/11/6 m,0.30,Left turn followed by a right turn,Two complexes with opposite turn directions
+06_many_turns_long_range.txt,198,2660.0,720000.000,6100000.000,variable 7/10/16/23/12 m,0.65,Long alignment with six alternating turn complexes,Several posl/vse iterations and both turn directions
+07_radius_near_maximum.txt,275,820.0,250000.000,4300000.000,fixed 3 m,0.03,Very gentle turn with radius close to a typical Rmax=3000 m,Radius search close to the upper bound
+08_radius_near_minimum.txt,50,725.0,750000.000,6500000.000,fixed 15 m,0.25,Tight turn with radius close to a typical Rmin=250 m,Radius search close to the lower bound
+09_short_straight_between_turns.txt,110,677.0,15000.000,25000.000,variable 2/4/8/12/5 m,0.10,Two turns separated by a deliberately short straight,Tests tangent/complex rejection and VUxy return code 2
+10_long_intermediate_straight.txt,72,1420.0,410000.000,5700000.000,fixed 20 m,0.35,Two turns with a prominent straight between them,Exercises priamaia and transition to a detected straight
+11_perfect_design_axis.txt,65,640.0,0.000,0.000,fixed 10 m,0.00,Exact smooth geometry without measurement noise,Candidate for a case where optimization changes little
+12_all_straight_variable_step.txt,120,1200.0,80000.000,9000000.000,variable 3/5/9/14/20 m,0.40,Straight alignment sampled at a variable rate,No turn complexes should be required
+13_start_on_curve.txt,88,520.0,480000.000,4900000.000,fixed 6 m,0.10,Alignment begins directly on a circular curve,Diagnostic: beginning lies on a curve
+14_end_on_curve.txt,66,520.0,490000.000,4910000.000,fixed 8 m,0.20,Alignment ends on a circular curve,Diagnostic: ending lies on a curve
+15_total_turn_over_pi_2.txt,99,980.0,510000.000,4920000.000,fixed 10 m,0.05,Smooth complex whose total heading change exceeds pi/2,Tests handling of a total turn greater than pi/2
+16_total_turn_near_pi.txt,133,1320.0,520000.000,4930000.000,variable 5/10/15 m,0.00,Smooth complex whose total heading change is close to pi,Boundary case for a turn close to pi
+17_noise_over_shift_limit.txt,52,660.0,900000.000,7000000.000,variable 6/13/21 m,3.00,Ordinary left turn with noise exceeding a typical 2 m shift allowance,Expected to stress or violate displacement constraints
+18_vertex_turn_over_pi_2.txt,56,550.0,530000.000,4940000.000,fixed 10 m,0.00,One source-polyline vertex changes direction by 110 degrees,Should trigger the Legacy message: turn angle > PI/2
+19_vertex_turn_near_pi.txt,51,500.0,540000.000,4950000.000,variable 7/13 m,0.05,One source-polyline vertex changes direction by 175 degrees,Extreme input-angle boundary case close to PI
+20_irregular_zigzag.txt,44,257.0,1500.000,2500.000,variable 3/8/5/11 m,0.60,Short alternating legs without a stable initial tangent,Diagnostic candidate: no reliable first element

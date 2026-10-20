@@ -9,6 +9,8 @@
 #include "Unit1.h"
 //#include "Praktika.h"
 #include <vcl.h>
+#include "pech_message_trace.inc"
+
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 //extern  TForm1 *Form1;
@@ -74,6 +76,9 @@ int obrpr(int in,int i);
    */
  return kr;
   }//krt
+
+#include "pech_trace.inc"
+
 double otkl2(int in,int i,double ugl,double &s2,double &s3,int &imax,int &imin,
         double &ugmin,double &ugmax);
    //
@@ -685,6 +690,9 @@ t=(Rmin1+s2/Rmin1)*tan(s1)+L/2.; //t-тангенс при Rmin1
 
  void pech(void)
   {   //Здесь-число точек пока n на 1 меньше
+    pech_trace_open("pech_state.tsv");
+    reset_message_trace();
+
     int j,j1,j2,k;double s3; //s3-global
     pi2=pi/2.0;
     //etap=0;//только биссектрисы
@@ -716,6 +724,8 @@ t=(Rmin1+s2/Rmin1)*tan(s1)+L/2.; //t-тангенс при Rmin1
               npr,nug,dpr,dug,kdR,kdL);
     n_pts=n+1;  //n- номер последней точки съёмки в исходной нумерации
     // n_pts- число точек всего
+    dump_pech_state("init_0");
+
     int in,kk;   in=0;
     for(int i1=1;i1<n;i1++)
     {
@@ -749,7 +759,8 @@ t=(Rmin1+s2/Rmin1)*tan(s1)+L/2.; //t-тангенс при Rmin1
     {
       j1=1;ikon=n-nach;
     }//достаточно perv
-    else ikon=NNom (x[nach-1]+Lmax)-nach;//правая точка
+    else
+      ikon=NNom(x[nach-1]+Lmax)-nach;//правая точка
     fprintf(f1,"\n для perv inach=%d,ikon=%d,j1=%d,kon=%d",
                      inach,ikon,j1,kon);
     // kon-для последнего эл-та, а inach,ikon для первого
@@ -764,12 +775,17 @@ t=(Rmin1+s2/Rmin1)*tan(s1)+L/2.; //t-тангенс при Rmin1
     }
     nzapf=-1; nzapmax=0;
     sum=sumall=0.0;
+    dump_pech_state("before_perv_1");
     perv(); //в пределах inach=0 до  ikon-последняя за Lmin  до конца
+    dump_pech_state("after_perv_2");
+
     if(!nzapmax)
     {
       ShowMessage("Не построен первый элемент.Меняем азимут");
       fprintf(f1,"\n Не построен первый элемент.Меняем азимут");
-      delete []masnorm; pribl=0;
+      delete []masnorm;
+      masnorm=NULL;
+      pribl=0;
     }
     else
     {
@@ -779,10 +795,14 @@ t=(Rmin1+s2/Rmin1)*tan(s1)+L/2.; //t-тангенс при Rmin1
     }
     //fclose(f1); exit(0);
     //++++
+    dump_pech_state("before_primaia_3");
+
     if(dH>0.001)
       priamaia(xt,yt);
     else
       ndef=0;
+    dump_pech_state("after_primaia_4");
+
     if(!pribl)
     {
       nach=NNom(Lmin);
@@ -883,7 +903,10 @@ t=(Rmin1+s2/Rmin1)*tan(s1)+L/2.; //t-тангенс при Rmin1
       //надо пометить все точки зоны конечная -3-nach
     // в четырёх последних исправил нормали,вычисляя угол
     //если последняя точка на прямой, то нормаль поправлена и там
+    dump_pech_state("before_prev_5");
+
     delete []plan;
+    plan=NULL;
     if(!pribl)
     {
       nzapf=-1;
@@ -913,7 +936,8 @@ t=(Rmin1+s2/Rmin1)*tan(s1)+L/2.; //t-тангенс при Rmin1
         exit(0);
       }
     }//if(!pribl)
-    
+    dump_pech_state("after_prev_6");
+
     Form1->Fild->Visible=false;
     Form1->Panel1->Visible=false;
     if(!j1)// подготовка пределов для  vse с использованием posl
@@ -942,6 +966,8 @@ t=(Rmin1+s2/Rmin1)*tan(s1)+L/2.; //t-тангенс при Rmin1
         //else { fclose(f1);return;}
       }
     }
+    dump_pech_state("after_vse_7");
+
 
     
     nkr=zapline(nprz,nugz);// nprz,nugz-номер точки и угла
@@ -954,6 +980,8 @@ t=(Rmin1+s2/Rmin1)*tan(s1)+L/2.; //t-тангенс при Rmin1
     fprintf(f1,"\nend zapis");
     fprintf(f1," \nНачальное приближение построено");
     fclose(f1);
+    dump_pech_state("final_8");
+    pech_trace_close();
     return; //в Praktika кнопка Рассчитать
   }//pech
 

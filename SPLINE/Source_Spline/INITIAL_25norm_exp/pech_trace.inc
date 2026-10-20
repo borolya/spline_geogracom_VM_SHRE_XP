@@ -148,15 +148,7 @@ static void pech_trace_inf_fields(FILE* file, INF* value)
     pech_trace_double(stage, "global", #variable, -1, variable)
 
 static void dump_pech_state(
-    const char* stage,
-    int local_in,
-    int local_j,
-    int local_j1,
-    int local_j2,
-    int local_k,
-    int local_kk,
-    double local_s3,
-    double local_ugolpr
+    const char* stage
 )
 {
     int i;
@@ -167,14 +159,6 @@ static void dump_pech_state(
         return;
 
     /* Локальные переменные pech передаются явно. */
-    pech_trace_int(stage, "local", "in", -1, local_in);
-    pech_trace_int(stage, "local", "j", -1, local_j);
-    pech_trace_int(stage, "local", "j1", -1, local_j1);
-    pech_trace_int(stage, "local", "j2", -1, local_j2);
-    pech_trace_int(stage, "local", "k", -1, local_k);
-    pech_trace_int(stage, "local", "kk", -1, local_kk);
-    pech_trace_double(stage, "local", "s3", -1, local_s3);
-    pech_trace_double(stage, "local", "ugolpr", -1, local_ugolpr);
 
     /* Все скалярные global-переменные pech и вызываемого поиска. */
     PECH_TRACE_INT_GLOBAL(n);
